@@ -82,13 +82,17 @@ if st.sidebar.button("🔄 Actualizar Datos"):
 conn = get_connection()
 try:
     games_df = pd.read_sql_query('''
-        SELECT d.game_id, d.home_team, d.away_team, d.venue_name, d.weather_condition, d.wind_speed, d.wind_direction,
+        SELECT d.game_id, d.game_date, d.home_team, d.away_team, d.venue_name, d.weather_condition, d.wind_speed, d.wind_direction,
                d.home_pitcher_name, d.away_pitcher_name, p.home_win_prob, p.away_win_prob, 
                p.expected_total_runs, p.suggested_bet, p.confidence_score, p.key_insight
         FROM daily_schedule d
         JOIN predictions p ON d.game_id = p.game_id
     ''', conn)
-    props_df = pd.read_sql_query('SELECT * FROM player_props', conn)
+    props_df = pd.read_sql_query('''
+        SELECT p.*, d.game_date 
+        FROM player_props p
+        JOIN daily_schedule d ON p.game_id = d.game_id
+    ''', conn)
     parlays_df = pd.read_sql_query('SELECT * FROM ai_parlays', conn)
 except:
     games_df = pd.DataFrame()
@@ -117,33 +121,37 @@ with tab1:
     for i, (_, row) in enumerate(best_props.iterrows()):
         with cols[i % 3]:
             with st.container(border=True):
+                # FECHA DE LA APUESTA
+                from datetime import datetime
+                today_s = datetime.now().strftime('%Y-%m-%d')
+                badge_color = "#FF5722" if row['game_date'] == today_s else "#2196F3"
+                badge_text = "HOY" if row['game_date'] == today_s else "MAÑANA"
+                st.markdown(f"<div style='text-align:right;'><span style='background:{badge_color}; color:white; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:bold;'>{badge_text}</span></div>", unsafe_allow_html=True)
+                
                 # FOTO DEL JUGADOR
                 p_id = row.get('player_id', 0)
-                if pd.notnull(p_id) and p_id > 0:
-                    img_url = f"https://img.mlbstatic.com/mlb-photos/person/{int(p_id)}@3x.jpg"
-                    st.markdown(f"<div style='text-align:center;'><img src='{img_url}' style='border-radius:50%; width:100px; border:3px solid #FF5722;'></div>", unsafe_allow_html=True)
+                try:
+                    p_id_int = int(float(p_id))
+                except: p_id_int = 0
+
+                if p_id_int > 0:
+                    img_url = f"https://img.mlbstatic.com/mlb-photos/person/{p_id_int}@3x.jpg"
+                    st.markdown(f"<div style='text-align:center; margin-top:5px;'><img src='{img_url}' style='border-radius:50%; width:80px; height:80px; border:2px solid {badge_color}; object-fit: cover;'></div>", unsafe_allow_html=True)
                 else:
-                    st.markdown(f"<div style='text-align:center; font-size:60px;'>⚾</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='text-align:center; font-size:50px; margin-top:5px;'>⚾</div>", unsafe_allow_html=True)
                 
-                st.markdown(f"<h4 style='text-align:center; margin-bottom:0;'>{row['player_name']}</h4>", unsafe_allow_html=True)
-                st.markdown(f"<div style='text-align:center;'>**{row['suggested_side']} {row['line']} {row['prop_type']}**</div>", unsafe_allow_html=True)
-                st.markdown(f"<div style='text-align:center;'>Momio: **{row['american_odds']}**</div>", unsafe_allow_html=True)
+                st.markdown(f"<h4 style='text-align:center; margin-bottom:0; font-size:16px;'>{row['player_name']}</h4>", unsafe_allow_html=True)
+                st.markdown(f"<div style='text-align:center; font-size:14px;'>**{row['suggested_side']} {row['line']}**</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='text-align:center; font-size:12px; opacity:0.8;'>{row['prop_type']}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='text-align:center; color:#FF5722; font-weight:bold;'>{row['american_odds']}</div>", unsafe_allow_html=True)
                 
-                # Checkbox para seleccionar
+                # Checkbox
                 desc_p = f"{row['player_name']}: {row['suggested_side']} {row['line']} {row['prop_type']}"
-                prob_p = row['confidence_score']
-                
-                # Sincronizar estado
-                is_selected = any(b['desc'] == desc_p for b in st.session_state['selected_bets'])
-                
-                if st.checkbox("Seleccionar para Parlay", value=is_selected, key=f"best_p_{row['prop_id']}"):
+                if st.checkbox("Añadir", key=f"bp_{row['prop_id']}"):
                     if not any(b['desc'] == desc_p for b in st.session_state['selected_bets']):
-                        st.session_state['selected_bets'].append({"desc": desc_p, "prob": prob_p})
-                else:
-                    if any(b['desc'] == desc_p for b in st.session_state['selected_bets']):
-                        st.session_state['selected_bets'] = [b for b in st.session_state['selected_bets'] if b['desc'] != desc_p]
+                        st.session_state['selected_bets'].append({"desc": desc_p, "prob": row['confidence_score']})
                 
-                st.markdown(f"<h2 style='color:#FF5722; text-align:center; margin-top:0;'>{row['confidence_score']:.1f}%</h2>", unsafe_allow_html=True)
+                st.markdown(f"<div style='text-align:center; font-size:22px; font-weight:bold; color:#4CAF50;'>{row['confidence_score']:.1f}%</div>", unsafe_allow_html=True)
 
 # TAB 2: PARLAYS DE LA IA
 with tab2:
