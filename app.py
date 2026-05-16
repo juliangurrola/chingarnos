@@ -1,7 +1,11 @@
 import streamlit as st
 import sqlite3
 import pandas as pd
-from database import get_connection
+import urllib.parse
+from database import get_connection, init_db
+
+# Inicializar DB si no existe (importante para la nube)
+init_db()
 
 st.set_page_config(page_title="A chingarnos al casino x Elven", page_icon="🤑", layout="wide")
 
@@ -43,21 +47,26 @@ if st.sidebar.button("🔄 Actualizar Datos"):
     st.sidebar.success("¡Datos actualizados!")
     st.rerun()
 
-conn = get_connection()
-games_df = pd.read_sql_query('''
-    SELECT d.game_id, d.home_team, d.away_team, d.venue_name, d.weather_condition, d.wind_speed, d.wind_direction,
-           d.home_pitcher_name, d.away_pitcher_name, p.home_win_prob, p.away_win_prob, 
-           p.expected_total_runs, p.suggested_bet, p.confidence_score
-    FROM daily_schedule d
-    JOIN predictions p ON d.game_id = p.game_id
-''', conn)
+try:
+    games_df = pd.read_sql_query('''
+        SELECT d.game_id, d.home_team, d.away_team, d.venue_name, d.weather_condition, d.wind_speed, d.wind_direction,
+               d.home_pitcher_name, d.away_pitcher_name, p.home_win_prob, p.away_win_prob, 
+               p.expected_total_runs, p.suggested_bet, p.confidence_score
+        FROM daily_schedule d
+        JOIN predictions p ON d.game_id = p.game_id
+    ''', conn)
+    props_df = pd.read_sql_query('SELECT * FROM player_props', conn)
+    parlays_df = pd.read_sql_query('SELECT * FROM ai_parlays', conn)
+except:
+    games_df = pd.DataFrame()
+    props_df = pd.DataFrame()
+    parlays_df = pd.DataFrame()
 
-props_df = pd.read_sql_query('SELECT * FROM player_props', conn)
-parlays_df = pd.read_sql_query('SELECT * FROM ai_parlays', conn)
 conn.close()
 
 if games_df.empty:
-    st.warning("No hay datos cargados para hoy.")
+    st.warning("⚠️ La base de datos está vacía en este servidor.")
+    st.info("Por favor, haz clic en el botón **'🔄 Actualizar Datos'** en el menú de la izquierda para descargar las estadísticas de hoy y generar las predicciones.")
     st.stop()
 
 tab1, tab2, tab3, tab4 = st.tabs(["🎯 Player Props", "🤑 Parlays Sugeridos", "📝 Armador de Parlays", "📊 Juegos Principales"])
@@ -164,6 +173,26 @@ with tab3:
             payout = wager + profit
             st.sidebar.markdown(f"### 💰 Posible Ganancia")
             st.sidebar.metric(label="Pago Total", value=f"${payout:.2f}", delta=f"+${profit:.2f} ganancia")
+            
+            # BOTON WHATSAPP
+            msg = f"🎰 *MI PARLAY GANADOR* (A chingarnos al casino x Elven)\n\n"
+            for b in st.session_state['selected_bets']:
+                msg += f"• {b['desc']}\n"
+            msg += f"\n*MOMIO:* {display_odds}\n"
+            msg += f"*APUESTA:* ${wager:.2f}\n"
+            msg += f"*PAGO ESTIMADO:* ${payout:.2f}\n\n"
+            msg += "¡A cobrar! ⚾💸"
+            
+            encoded_msg = urllib.parse.quote(msg)
+            wa_url = f"https://wa.me/?text={encoded_msg}"
+            
+            st.sidebar.markdown(f'''
+                <a href="{wa_url}" target="_blank">
+                    <button style="width:100%; background-color:#25D366; color:white; border:none; padding:10px; border-radius:5px; cursor:pointer; font-weight:bold;">
+                        📲 Enviar por WhatsApp
+                    </button>
+                </a>
+            ''', unsafe_allow_html=True)
 
 # TAB 4: JUEGOS PRINCIPALES
 with tab4:
