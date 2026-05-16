@@ -272,10 +272,10 @@ with tab3:
                 st.write(f"**Selecciones:** {len(st.session_state['selected_bets'])}")
                 st.info("👉 El ticket completo con calculadora y botón de WhatsApp está al final de la página.")
 
-# --- SECCION GLOBAL: RECIBO DE APUESTA (FUERA DE TABS) ---
-st.markdown("---")
-with st.container(border=True):
-    st.subheader("🛒 Tu Recibo de Apuesta")
+# --- SECCION LATERAL (SIDEBAR): RECIBO DE APUESTA ---
+with st.sidebar:
+    st.markdown("---")
+    st.subheader("🛒 Tu Ticket")
     
     # Inicializar variables para evitar errores
     combined_odds = "N/A"
@@ -285,45 +285,53 @@ with st.container(border=True):
     wa_url = "#"
     
     if 'selected_bets' in st.session_state and len(st.session_state['selected_bets']) > 0:
-        col_rec1, col_rec2 = st.columns([2, 1])
-        with col_rec1:
-            st.markdown("**Selecciones:**")
-            probs = []
-            for b in st.session_state['selected_bets']:
-                st.write(f"✅ {b['desc']}")
+        st.markdown("**Selecciones:**")
+        probs = []
+        for b in st.session_state['selected_bets']:
+            with st.container(border=True):
+                st.caption(f"✅ {b['desc']}")
                 probs.append(b['prob'])
-            
-            wager = st.number_input("Monto a apostar ($):", min_value=10.0, value=100.0, step=10.0, key="wager_global")
         
-        with col_rec2:
-            combined_odds = calc_parlay_odds(probs)
-            if combined_odds != "N/A":
-                display_odds = f"+{combined_odds}" if combined_odds > 0 else f"{combined_odds}"
-                st.metric("MOMIO PARLAY", display_odds)
-                if combined_odds > 0: profit = wager * (combined_odds / 100.0)
-                else: profit = wager * (100.0 / abs(combined_odds))
-                payout = wager + profit
-                st.metric("PAGO TOTAL", f"${payout:.2f}", delta=f"${profit:.2f} NETO")
-            else:
-                st.error("Error en Momio")
-
+        wager = st.number_input("Monto a apostar ($):", min_value=10.0, value=100.0, step=10.0, key="wager_side")
+        
+        combined_odds = calc_parlay_odds(probs)
+        if combined_odds != "N/A":
+            display_odds = f"+{combined_odds}" if combined_odds > 0 else f"{combined_odds}"
+            st.metric("MOMIO", display_odds)
+            if combined_odds > 0: profit = wager * (combined_odds / 100.0)
+            else: profit = wager * (100.0 / abs(combined_odds))
+            payout = wager + profit
+            st.metric("PAGO TOTAL", f"${payout:.2f}")
+        
         # Generar link de WhatsApp
-        msg = f"🎰 *MI PARLAY GANADOR* (A chingarnos al casino x Elven)\n\n"
+        msg = f"🎰 *MI PARLAY GANADOR* (Elven MX)\n\n"
         for b in st.session_state['selected_bets']:
             msg += f"• {b['desc']}\n"
-        msg += f"\n*MOMIO:* {display_odds}\n*APUESTA:* ${wager:.2f}\n*PAGO ESTIMADO:* ${payout:.2f}\n\n¡A cobrar! ⚾💸"
+        msg += f"\n*MOMIO:* {display_odds}\n*APUESTA:* ${wager:.2f}\n*PAGO:* ${payout:.2f}\n\n¡A cobrar! ⚾💸"
         wa_url = f"https://wa.me/?text={urllib.parse.quote(msg)}"
         
-        # BARRA FLOTANTE PARA MOVILES (STICKY FOOTER)
+        # Boton grande para WhatsApp
+        st.markdown(f'''
+            <a href="{wa_url}" target="_blank" style="text-decoration:none;">
+                <div style="width:100%; background-color:#25D366; color:white; text-align:center; padding:12px; border-radius:10px; cursor:pointer; font-weight:bold; font-size:16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    📲 ENVIAR POR WA
+                </div>
+            </a>
+        ''', unsafe_allow_html=True)
+        
+        if st.button("🗑️ Limpiar Ticket"):
+            st.session_state['selected_bets'] = []
+            st.rerun()
+    else:
+        st.info("Selecciona jugadas para armar tu parlay.")
+
+    # BARRA FLOTANTE PARA MOVILES (STICKY FOOTER - Se mantiene para moviles donde no hay sidebar visible)
+    if 'selected_bets' in st.session_state and len(st.session_state['selected_bets']) > 0:
         st.markdown(f'''
             <div class="floating-footer">
                 <div style="color:white;">
                     <div style="font-size:10px; opacity:0.8;">MOMIO</div>
                     <div style="font-size:16px; font-weight:bold; color:#FF5722;">{display_odds}</div>
-                </div>
-                <div style="color:white; text-align:center;">
-                    <div style="font-size:10px; opacity:0.8;">PAGO</div>
-                    <div style="font-size:16px; font-weight:bold; color:#4CAF50;">${payout:.0f}</div>
                 </div>
                 <a href="{wa_url}" target="_blank" style="text-decoration:none;">
                     <button style="background-color:#25D366; color:white; border:none; padding:8px 15px; border-radius:20px; font-weight:bold; font-size:12px; cursor:pointer;">
@@ -332,17 +340,6 @@ with st.container(border=True):
                 </a>
             </div>
         ''', unsafe_allow_html=True)
-
-        # Boton grande para escritorio
-        st.markdown(f'''
-            <a href="{wa_url}" target="_blank" style="text-decoration:none;">
-                <div style="width:100%; background: linear-gradient(90deg, #25D366, #128C7E); color:white; text-align:center; padding:15px; border-radius:15px; cursor:pointer; font-weight:bold; font-size:20px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-                    📲 ENVIAR TICKET POR WHATSAPP
-                </div>
-            </a>
-        ''', unsafe_allow_html=True)
-    else:
-        st.info("👋 ¡Hola! Selecciona jugadas arriba para armar tu parlay y ver aquí tu ticket.")
 
 
 # TAB 4: JUEGOS PRINCIPALES
