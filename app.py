@@ -160,17 +160,20 @@ try:
         JOIN daily_schedule d ON p.game_id = d.game_id
     ''', conn)
     
-    # --- FILTRO MAESTRO GLOBAL: ELIMINAR BASURA ---
+    # --- FILTRO MAESTRO RADICAL: CERO TOLERANCIA ---
     if not props_df.empty:
-        bad_names = ["Mejor Contacto", "1er Bateador", "4to Bat", "Bateador Clave", "Cleanup"]
-        # Solo borrar si el ID es 0 (lo que confirma que es un placeholder)
-        props_df = props_df[~((props_df['player_name'].str.contains('|'.join(bad_names))) & (props_df['player_id'] == 0))]
+        bad_keywords = ["Bat", "Contacto", "Bateador", "Clave", "Cleanup", "4to"]
+        # Eliminamos CUALQUIER COSA que contenga estas palabras, sin importar el ID
+        pattern = '|'.join(bad_keywords)
+        props_df = props_df[~props_df['player_name'].str.contains(pattern, case=False, na=False)]
     
     parlays_df = pd.read_sql_query('SELECT * FROM ai_parlays', conn)
+    news_df = pd.read_sql_query('SELECT * FROM mlb_news', conn)
 except:
     games_df = pd.DataFrame()
     props_df = pd.DataFrame()
     parlays_df = pd.DataFrame()
+    news_df = pd.DataFrame()
 
 # --- CREAR TOP 10 UNIFICADO (EQUIPOS + JUGADORES) ---
 all_bets_list = []
@@ -198,9 +201,9 @@ if not props_df.empty:
     for _, row in props_df.iterrows():
         p_name = str(row.get('player_name', ''))
         
-        # FILTRO MAESTRO: Si es un nombre generico, lo ignoramos
-        bad_names = ["Mejor Contacto", "1er Bateador", "4to Bat", "Bateador Clave", "Cleanup"]
-        if any(bad in p_name for bad in bad_names) and row.get('player_id', 0) == 0:
+        # FILTRO DE SEGURIDAD FINAL (RUDO)
+        bad_keywords = ["Bat", "Contacto", "Bateador", "Clave", "Cleanup", "4to"]
+        if any(bad.lower() in p_name.lower() for bad in bad_keywords):
             continue
             
         all_bets_list.append({
@@ -224,7 +227,7 @@ if games_df.empty:
     st.info("Por favor, haz clic en el botón **'🔄 Actualizar Datos'** en el menú de la izquierda para descargar las estadísticas de hoy y generar las predicciones.")
     st.stop()
 
-tab1, tab2, tab3, tab4 = st.tabs(["🎯 Player Props", "🤑 Parlays Sugeridos", "📝 Armador de Parlays", "📊 Juegos Principales"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["🎯 Top 10", "🤑 Parlays IA", "📝 Armador", "📊 Juegos", "🗞️ Noticias"])
 
 # TAB 1: MEJORES APUESTAS
 with tab1:
@@ -432,9 +435,17 @@ with tab4:
                             st.image(f"https://img.mlbstatic.com/mlb-photos/person/{row['away_pitcher_id']}@3x.jpg", width=80)
                         st.write(f"✈️ {row['away_team']}: {row['away_pitcher_name']}")
                 with col2:
-                    st.markdown("**Condiciones (Estadio/Clima):**")
-                    st.write(f"🌤️ {row['weather_condition']}")
-                    st.write(f"💨 Viento: {row['wind_speed']} mph, {row['wind_direction']}")
+                    st.markdown("**🌬️ Análisis de Campo:**")
+                    w_icon = "🚩" if "Out" in row['wind_direction'] else "🏳️"
+                    w_color = "#FF5252" if "Out" in row['wind_direction'] else "#448AFF"
+                    st.markdown(f'''
+                        <div style="background-color:#1A1C24; padding:10px; border-radius:10px; border-left: 5px solid {w_color};">
+                            <div style="font-size:12px; color:gray;">CONDICIÓN</div>
+                            <div style="font-size:16px; font-weight:bold;">☀️ {row['weather_condition']} ({row['temperature']}°F)</div>
+                            <div style="font-size:12px; color:gray; margin-top:5px;">VIENTO</div>
+                            <div style="font-size:16px; font-weight:bold;">{w_icon} {row['wind_speed']} mph, {row['wind_direction']}</div>
+                        </div>
+                    ''', unsafe_allow_html=True)
                 
                 st.progress(int(row['home_win_prob']), text=f"Probabilidad de Local ({row['home_team']}): {row['home_win_prob']:.1f}%")
                 st.metric("Carreras Totales Esperadas", f"{row['expected_total_runs']} carreras")
@@ -442,3 +453,16 @@ with tab4:
                 with st.container(border=True):
                     st.markdown("#### 📌 Análisis de Referencia (Insights)")
                     st.info(row['key_insight'])
+
+# TAB 5: NOTICIAS & TENDENCIAS
+with tab5:
+    st.subheader("🗞️ Últimas Noticias & Tendencias MLB")
+    if 'news_df' in locals() and not news_df.empty:
+        for _, item in news_df.iterrows():
+            with st.container(border=True):
+                st.markdown(f"### {item['title']}")
+                st.caption(f"📅 {item['published']}")
+                st.write(item['summary'])
+                st.markdown(f"[Leer más en MLB.com]({item['link']})")
+    else:
+        st.info("No hay noticias recientes. Haz clic en 'Actualizar Datos' para cargar lo más nuevo.")

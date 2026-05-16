@@ -98,6 +98,17 @@ def init_db():
             win_probability REAL
         )
     ''')
+
+    # NUEVO: Tabla de Noticias MLB
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS mlb_news (
+            news_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT,
+            link TEXT,
+            summary TEXT,
+            published TEXT
+        )
+    ''')
     
     # Intento de agregar columna key_insight si ya existía la tabla vieja
     try:
