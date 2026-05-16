@@ -80,15 +80,17 @@ def generate_predictions():
             suggested_bet = f"{row['home_team']} ML" if home_win_prob > 50 else f"{row['away_team']} ML"
             confidence = max(home_win_prob, away_win_prob)
             
-        # GENERAR INSIGHT DE ANALISIS (REFERENCIAS REALES)
-        insights = [
-            f"El pitcher {row['home_pitcher_name']} llega con una ERA real de {h_era:.2f}.",
-            f"Los bateadores de {row['home_team']} tienen un OPS de {h_ops:.3f} esta temporada.",
-            f"El factor viento ({row['wind_speed']} mph {row['wind_direction']}) afecta el total de {expected_runs}.",
-            f"El duelo de pitcheo favorece a {row['home_team'] if h_era < a_era else row['away_team']} por efectividad.",
-            f"Históricamente en este estadio ({row['venue_name']}), se promedian {(h_rpg+a_rpg)/2:.1f} carreras."
-        ]
-        key_insight = " | ".join(random.sample(insights, 2))
+        # --- GENERAR INSIGHTS PROFUNDOS (ESTILO SHARP) ---
+        era_diff = abs(h_era - a_era)
+        p_analysis = f"🔥 Pitcheo: {row['home_pitcher_name']} ({h_era:.2f}) vs {row['away_pitcher_name']} ({a_era:.2f}). "
+        p_analysis += f"Ventaja {'Local' if h_era < a_era else 'Visitante'} por efectividad. "
+        
+        b_analysis = f"📈 Bateo: {row['home_team']} (OPS {h_ops:.3f}) vs {row['away_team']} (OPS {a_ops:.3f}). "
+        b_analysis += "Lineup local fuerte." if h_ops > 0.800 else "Duelo ofensivo parejo."
+        
+        v_analysis = f"🏟️ Estadio: {row['venue_name']}. Clima {row['weather_condition']} con viento {row['wind_speed']} mph {row['wind_direction']}."
+        
+        key_insight = f"{p_analysis} | {b_analysis} | {v_analysis}"
 
         cursor.execute('''
             INSERT INTO predictions 

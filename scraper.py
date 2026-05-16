@@ -65,16 +65,22 @@ def fetch_daily_schedule():
             venue = g.get('venue', {}).get('name', 'N/A')
             status = g.get('status', {}).get('detailedState', 'N/A')
             
-            # Datos del clima
+            # Datos del clima (Mejorado)
             weather = g.get('weather', {})
-            cond = weather.get('condition', 'Unknown')
-            temp = weather.get('temp', 0)
-            w_speed = weather.get('wind', '0 mph')
-            w_dir = "N/A"
-            if ' ' in w_speed:
-                parts = w_speed.split(' ')
-                w_speed = parts[0]
-                w_dir = parts[2] if len(parts) > 2 else "Unknown"
+            cond = weather.get('condition', 'Despejado')
+            temp = weather.get('temp', '--')
+            wind_raw = weather.get('wind', 'Pendiente')
+            
+            w_speed = "0"
+            w_dir = "Calma"
+            
+            if wind_raw != 'Pendiente' and ' ' in wind_raw:
+                parts = wind_raw.split(', ')
+                w_speed = parts[0].replace(' mph', '')
+                w_dir = parts[1] if len(parts) > 1 else "Variable"
+            else:
+                w_speed = "0"
+                w_dir = "Reporte en camino"
             
             # Pitchers
             h_pitcher = g.get('teams', {}).get('home', {}).get('probablePitcher', {})

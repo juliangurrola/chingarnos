@@ -159,6 +159,13 @@ try:
         FROM player_props p
         JOIN daily_schedule d ON p.game_id = d.game_id
     ''', conn)
+    
+    # --- FILTRO MAESTRO GLOBAL: ELIMINAR BASURA ---
+    if not props_df.empty:
+        bad_names = ["Mejor Contacto", "1er Bateador", "4to Bat", "Bateador Clave", "Cleanup"]
+        # Solo borrar si el ID es 0 (lo que confirma que es un placeholder)
+        props_df = props_df[~((props_df['player_name'].str.contains('|'.join(bad_names))) & (props_df['player_id'] == 0))]
+    
     parlays_df = pd.read_sql_query('SELECT * FROM ai_parlays', conn)
 except:
     games_df = pd.DataFrame()
@@ -186,12 +193,19 @@ if not games_df.empty:
             "t_id": row.get('home_team_id', 0)
         })
 
-# 2. Añadir jugadas de jugadores
+# 2. Añadir jugadas de jugadores (CON FILTRO DE SEGURIDAD)
 if not props_df.empty:
     for _, row in props_df.iterrows():
+        p_name = str(row.get('player_name', ''))
+        
+        # FILTRO MAESTRO: Si es un nombre generico, lo ignoramos
+        bad_names = ["Mejor Contacto", "1er Bateador", "4to Bat", "Bateador Clave", "Cleanup"]
+        if any(bad in p_name for bad in bad_names) and row.get('player_id', 0) == 0:
+            continue
+            
         all_bets_list.append({
             "type": "JUGADOR",
-            "name": str(row.get('player_name', 'Jugador')),
+            "name": p_name,
             "play": f"{row.get('suggested_side', '')} {row.get('line', '')} {row.get('prop_type', '')}",
             "conf": float(row.get('confidence_score', 0)),
             "odds": str(row.get('american_odds', 'VAR')),
