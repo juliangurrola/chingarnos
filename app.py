@@ -161,7 +161,7 @@ try:
         JOIN predictions p ON d.game_id = p.game_id
     ''', conn)
     props_df = pd.read_sql_query('''
-        SELECT p.*, d.game_date 
+        SELECT p.*, d.game_date, d.home_team_id, d.away_team_id 
         FROM player_props p
         JOIN daily_schedule d ON p.game_id = d.game_id
     ''', conn)
@@ -258,17 +258,20 @@ with tab1:
             col_img, col_info, col_action = st.columns([1, 3, 1])
             
             with col_img:
+                try:
+                    p_id = int(float(bet.get('p_id', 0) or 0))
+                    t_id = int(float(bet.get('t_id', 0) or 0))
+                except:
+                    p_id = 0; t_id = 0
+                    
                 if bet['type'] == "JUGADOR":
-                    try:
-                        p_id = int(float(bet['p_id']))
-                        if p_id > 0:
-                            st.image(f"https://img.mlbstatic.com/mlb-photos/person/{p_id}@3x.jpg", width=80)
-                        else: st.markdown("<h1 style='text-align:center;'>⚾</h1>", unsafe_allow_html=True)
-                    except:
+                    if p_id > 0:
+                        st.image(f"https://img.mlbstatic.com/mlb-photos/person/{p_id}@3x.jpg", width=80)
+                    elif t_id > 0:
+                        st.image(f"https://www.mlbstatic.com/team-logos/{t_id}.svg", width=80)
+                    else:
                         st.markdown("<h1 style='text-align:center;'>⚾</h1>", unsafe_allow_html=True)
                 else:
-                    # LOGO DE EQUIPO OFICIAL
-                    t_id = bet.get('t_id', 0)
                     if t_id > 0:
                         st.image(f"https://www.mlbstatic.com/team-logos/{t_id}.svg", width=80)
                     else:
@@ -367,8 +370,14 @@ with tab3:
                 for idx, prop in game_props.iterrows():
                     with st.container(border=True):
                         c_img, c_det = st.columns([1, 4])
-                        p_id = prop.get('player_id', 0)
-                        t_id = prop.get('team_id', 0)
+                        try:
+                            p_id = int(float(prop.get('player_id', 0) or 0))
+                            t_id = int(float(prop.get('team_id', 0) or 0))
+                            if t_id == 0: # Backup si la columna nueva está vacía
+                                t_id = int(float(prop.get('home_team_id', 0) or 0))
+                        except:
+                            p_id = 0; t_id = 0
+                            
                         with c_img:
                             if p_id > 0:
                                 st.image(f"https://img.mlbstatic.com/mlb-photos/person/{p_id}@3x.jpg", width=60)
@@ -417,15 +426,31 @@ with tab3:
                 game_props = props_df[props_df['game_id'] == row['game_id']]
                 p_cols = st.columns(2)
                 for idx, prop in game_props.iterrows():
-                    with p_cols[idx % 2]:
-                        with st.container(border=True):
+                    with st.container(border=True):
+                        c_img, c_det = st.columns([1, 4])
+                        try:
+                            p_id = int(float(prop.get('player_id', 0) or 0))
+                            t_id = int(float(prop.get('team_id', 0) or 0))
+                            if t_id == 0: # Backup si la columna nueva está vacía
+                                t_id = int(float(prop.get('home_team_id', 0) or 0))
+                        except:
+                            p_id = 0; t_id = 0
+                            
+                        with c_img:
+                            if p_id > 0:
+                                st.image(f"https://img.mlbstatic.com/mlb-photos/person/{p_id}@3x.jpg", width=60)
+                            elif t_id > 0:
+                                st.image(f"https://www.mlbstatic.com/team-logos/{t_id}.svg", width=60)
+                            else:
+                                st.markdown("### 🏟️")
+                        with c_det:
                             desc_p = f"{prop['player_name']}: {prop['suggested_side']} {prop['line']} {prop['prop_type']}"
                             prob_p = prop['confidence_score']
                             if st.checkbox(f"**{desc_p}**", key=f"tm_p_{prop['prop_id']}"):
                                 if {"desc": desc_p, "prob": prob_p} not in st.session_state['selected_bets']: st.session_state['selected_bets'].append({"desc": desc_p, "prob": prob_p})
                             else:
                                 if {"desc": desc_p, "prob": prob_p} in st.session_state['selected_bets']: st.session_state['selected_bets'].remove({"desc": desc_p, "prob": prob_p})
-                            st.markdown(f"<h3 style='color:#2196F3; margin-top:-10px;'>{prob_p:.1f}%</h3>", unsafe_allow_html=True)
+                            st.markdown(f"<span style='color:#2196F3; font-weight:bold;'>{prob_p:.1f}% Prob.</span> | Momio: {prop['american_odds']}", unsafe_allow_html=True)
 
         else:
             st.info("👋 ¡Hola! Selecciona jugadas en los partidos de arriba para armar tu parlay.")
