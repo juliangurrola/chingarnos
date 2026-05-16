@@ -120,47 +120,38 @@ tab1, tab2, tab3, tab4 = st.tabs(["🎯 Player Props", "🤑 Parlays Sugeridos",
 
 # TAB 1: PLAYER PROPS
 with tab1:
-    st.subheader("🔥 TOP 10 RECOMENDACIONES DEL DÍA")
+    st.subheader("🎯 MEJORES JUGADAS DEL DÍA (TOP 10)")
     best_props = props_df.sort_values(by='confidence_score', ascending=False).head(10)
     
-    cols = st.columns(2) 
-    for i, (_, row) in enumerate(best_props.iterrows()):
-        with cols[i % 2]:
-            with st.container(border=True):
-                # FECHA DE LA APUESTA
-                from datetime import datetime
-                today_s = datetime.now().strftime('%Y-%m-%d')
-                badge_color = "#FF5722" if row['game_date'] == today_s else "#2196F3"
-                badge_text = "HOY" if row['game_date'] == today_s else "MAÑANA"
-                st.markdown(f"<div style='text-align:right;'><span style='background:{badge_color}; color:white; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:bold;'>{badge_text}</span></div>", unsafe_allow_html=True)
-                
-                # FOTO DEL JUGADOR
-                p_id = row.get('player_id', 0)
-                try:
-                    p_id_int = int(float(p_id))
-                except: p_id_int = 0
-
-                if p_id_int > 0:
-                    img_url = f"https://img.mlbstatic.com/mlb-photos/person/{p_id_int}@3x.jpg"
-                    st.markdown(f"<div style='text-align:center; margin-top:5px;'><img src='https://img.mlbstatic.com/mlb-photos/person/{p_id_int}@3x.jpg' style='border-radius:10px; width:100%; border:1px solid #30363D;'></div>", unsafe_allow_html=True)
+    for _, row in best_props.iterrows():
+        # Crear una fila compacta tipo Sportsbook
+        with st.container(border=True):
+            col_img, col_info, col_action = st.columns([1, 3, 1])
+            
+            with col_img:
+                p_id = int(float(row.get('player_id', 0)))
+                if p_id > 0:
+                    st.image(f"https://img.mlbstatic.com/mlb-photos/person/{p_id}@3x.jpg", width=70)
                 else:
-                    st.markdown(f"<div style='text-align:center; font-size:40px; margin-top:5px;'>⚾</div>", unsafe_allow_html=True)
-                
-                st.markdown(f"<h4 style='text-align:center; margin-bottom:0; font-size:16px;'>{row['player_name']}</h4>", unsafe_allow_html=True)
-                st.markdown(f"<div style='text-align:center; font-size:14px;'>**{row['suggested_side']} {row['line']}**</div>", unsafe_allow_html=True)
-                st.markdown(f"<div style='text-align:center; font-size:12px; opacity:0.8;'>{row['prop_type']}</div>", unsafe_allow_html=True)
-                st.markdown(f"<div style='text-align:center; color:#FF5722; font-weight:bold;'>{row['american_odds']}</div>", unsafe_allow_html=True)
-                
-                # BOTON DE ACCION (Añadir/Quitar con CALLBACK)
-                desc_p = f"{row['player_name']}: {row['suggested_side']} {row['line']} {row['prop_type']}"
-                is_selected = any(b['desc'] == desc_p for b in st.session_state['selected_bets'])
-                
-                btn_label = "✅ EN TICKET" if is_selected else "➕ AÑADIR"
-                st.button(btn_label, key=f"bp_{row['prop_id']}", use_container_width=True, on_click=toggle_bet, args=(desc_p, row['confidence_score']))
-                
-                st.markdown(f"<div style='text-align:center; font-size:22px; font-weight:bold; color:#4CAF50;'>{row['confidence_score']:.1f}%</div>", unsafe_allow_html=True)
+                    st.markdown("<h1 style='text-align:center;'>⚾</h1>", unsafe_allow_html=True)
+            
+            with col_info:
+                st.markdown(f"**{row['player_name']}**")
+                st.markdown(f"<span style='color:#FF5722; font-weight:bold;'>{row['suggested_side']} {row['line']} {row['prop_type']}</span>", unsafe_allow_html=True)
                 if row.get('key_insight'):
                     st.caption(f"💡 {row['key_insight']}")
+                st.markdown(f"<span style='color:#4CAF50; font-size:12px;'>Confianza: {row['confidence_score']:.1f}% | Momio: {row['american_odds']}</span>", unsafe_allow_html=True)
+            
+            with col_action:
+                # LLAVE UNICA BASADA EN DATOS, NO EN ID AUTOINCREMENTAL
+                bet_desc = f"{row['player_name']}: {row['suggested_side']} {row['line']} {row['prop_type']}"
+                is_in = any(b['desc'] == bet_desc for b in st.session_state['selected_bets'])
+                
+                label = "✅" if is_in else "➕"
+                # Usamos un botón que dispara el rerun inmediatamente
+                if st.button(label, key=f"btn_{row['player_name']}_{row['prop_type']}", use_container_width=True):
+                    toggle_bet(bet_desc, row['confidence_score'])
+                    st.rerun()
 
 # TAB 2: PARLAYS DE LA IA
 with tab2:
