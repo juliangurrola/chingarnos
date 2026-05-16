@@ -88,6 +88,11 @@ if st.sidebar.button("🔄 Actualizar Datos"):
     st.sidebar.success("¡Datos actualizados!")
     st.rerun()
 
+games_df = pd.DataFrame()
+props_df = pd.DataFrame()
+parlays_df = pd.DataFrame()
+top_10_unified = []
+
 conn = get_connection()
 try:
     games_df = pd.read_sql_query('''
@@ -109,37 +114,37 @@ except:
     props_df = pd.DataFrame()
     parlays_df = pd.DataFrame()
 
-    # --- CREAR TOP 10 UNIFICADO (EQUIPOS + JUGADORES) ---
-    all_bets_list = []
-    
-    # 1. Añadir jugadas de equipos (Moneyline / Totales)
-    if not games_df.empty:
-        for _, row in games_df.iterrows():
-            all_bets_list.append({
-                "type": "EQUIPO",
-                "name": str(row.get('home_team', 'Partido')),
-                "play": str(row.get('suggested_bet', 'N/A')),
-                "conf": float(row.get('confidence_score', 0)),
-                "odds": "VAR",
-                "insight": str(row.get('key_insight', 'Análisis disponible.')),
-                "p_id": 0
-            })
-    
-    # 2. Añadir jugadas de jugadores
-    if not props_df.empty:
-        for _, row in props_df.iterrows():
-            all_bets_list.append({
-                "type": "JUGADOR",
-                "name": str(row.get('player_name', 'Jugador')),
-                "play": f"{row.get('suggested_side', '')} {row.get('line', '')} {row.get('prop_type', '')}",
-                "conf": float(row.get('confidence_score', 0)),
-                "odds": str(row.get('american_odds', 'VAR')),
-                "insight": str(row.get('key_insight', 'Proyección estadística.')),
-                "p_id": row.get('player_id', 0)
-            })
-    
-    # Ordenar y tomar los mejores 10 (con seguridad)
-    top_10_unified = sorted(all_bets_list, key=lambda x: x['conf'], reverse=True)[:10]
+# --- CREAR TOP 10 UNIFICADO (EQUIPOS + JUGADORES) ---
+all_bets_list = []
+
+# 1. Añadir jugadas de equipos (Moneyline / Totales)
+if not games_df.empty:
+    for _, row in games_df.iterrows():
+        all_bets_list.append({
+            "type": "EQUIPO",
+            "name": str(row.get('home_team', 'Partido')),
+            "play": str(row.get('suggested_bet', 'N/A')),
+            "conf": float(row.get('confidence_score', 0)),
+            "odds": "VAR",
+            "insight": str(row.get('key_insight', 'Análisis disponible.')),
+            "p_id": 0
+        })
+
+# 2. Añadir jugadas de jugadores
+if not props_df.empty:
+    for _, row in props_df.iterrows():
+        all_bets_list.append({
+            "type": "JUGADOR",
+            "name": str(row.get('player_name', 'Jugador')),
+            "play": f"{row.get('suggested_side', '')} {row.get('line', '')} {row.get('prop_type', '')}",
+            "conf": float(row.get('confidence_score', 0)),
+            "odds": str(row.get('american_odds', 'VAR')),
+            "insight": str(row.get('key_insight', 'Proyección estadística.')),
+            "p_id": row.get('player_id', 0)
+        })
+
+# Ordenar y tomar los mejores 10 (con seguridad)
+top_10_unified = sorted(all_bets_list, key=lambda x: x['conf'], reverse=True)[:10]
 
 conn.close()
 
