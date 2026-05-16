@@ -9,6 +9,28 @@ init_db()
 
 st.set_page_config(page_title="A chingarnos al casino x Elven", page_icon="🤑", layout="wide")
 
+# CSS para Barra Flotante en Móviles
+st.markdown("""
+    <style>
+    @media (max-width: 768px) {
+        .floating-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #1E1E1E;
+            padding: 15px;
+            border-top: 2px solid #FF5722;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .main { padding-bottom: 120px !important; }
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 # Helper para calcular cuota combinada
 def calc_parlay_odds(probs):
     if not probs: return "N/A"
@@ -127,47 +149,94 @@ with tab3:
     if 'selected_bets' not in st.session_state:
         st.session_state['selected_bets'] = []
         
-    for i, row in games_df.iterrows():
-        with st.expander(f"🏟️ {row['away_team']} @ {row['home_team']}", expanded=False):
-            st.markdown("#### 🏆 Ganador del Partido")
-            col1, col2 = st.columns(2)
-            
-            # Bet 1: ML Home
-            desc_h = f"{row['home_team']} ML"
-            prob_h = row['home_win_prob']
-            with col1:
-                with st.container(border=True):
-                    if st.checkbox(f"**{desc_h}**", key=f"h_{row['game_id']}"):
-                        if {"desc": desc_h, "prob": prob_h} not in st.session_state['selected_bets']: st.session_state['selected_bets'].append({"desc": desc_h, "prob": prob_h})
-                    else:
-                        if {"desc": desc_h, "prob": prob_h} in st.session_state['selected_bets']: st.session_state['selected_bets'].remove({"desc": desc_h, "prob": prob_h})
-                    st.markdown(f"<h3 style='color:#4CAF50; margin-top:-10px;'>{prob_h:.1f}%</h3>", unsafe_allow_html=True)
-                    
-            # Bet 2: ML Away
-            desc_a = f"{row['away_team']} ML"
-            prob_a = row['away_win_prob']
-            with col2:
-                with st.container(border=True):
-                    if st.checkbox(f"**{desc_a}**", key=f"a_{row['game_id']}"):
-                        if {"desc": desc_a, "prob": prob_a} not in st.session_state['selected_bets']: st.session_state['selected_bets'].append({"desc": desc_a, "prob": prob_a})
-                    else:
-                        if {"desc": desc_a, "prob": prob_a} in st.session_state['selected_bets']: st.session_state['selected_bets'].remove({"desc": desc_a, "prob": prob_a})
-                    st.markdown(f"<h3 style='color:#4CAF50; margin-top:-10px;'>{prob_a:.1f}%</h3>", unsafe_allow_html=True)
-
-            st.markdown("#### ⚾ Jugadas y Props")
-            game_props = props_df[props_df['game_id'] == row['game_id']]
-            
-            p_cols = st.columns(2)
-            for idx, prop in game_props.iterrows():
-                with p_cols[idx % 2]:
+    from datetime import datetime
+    today_str = datetime.now().strftime('%Y-%m-%d')
+    
+    # SECCION HOY
+    st.markdown("### 🔥 JUEGOS DE HOY")
+    today_games = games_df[games_df['game_date'] == today_str]
+    if today_games.empty:
+        st.write("No hay juegos programados para hoy.")
+    else:
+        for i, row in today_games.iterrows():
+            with st.expander(f"🏟️ {row['away_team']} @ {row['home_team']}", expanded=False):
+                # ... (resto del codigo de seleccion se mantiene igual)
+                st.markdown("#### 🏆 Ganador del Partido")
+                col1, col2 = st.columns(2)
+                desc_h = f"{row['home_team']} ML"
+                prob_h = row['home_win_prob']
+                with col1:
                     with st.container(border=True):
-                        desc_p = f"{prop['player_name']}: {prop['suggested_side']} {prop['line']} {prop['prop_type']}"
-                        prob_p = prop['confidence_score']
-                        if st.checkbox(f"**{desc_p}**", key=f"p_{prop['prop_id']}"):
-                            if {"desc": desc_p, "prob": prob_p} not in st.session_state['selected_bets']: st.session_state['selected_bets'].append({"desc": desc_p, "prob": prob_p})
+                        if st.checkbox(f"**{desc_h}**", key=f"h_{row['game_id']}"):
+                            if {"desc": desc_h, "prob": prob_h} not in st.session_state['selected_bets']: st.session_state['selected_bets'].append({"desc": desc_h, "prob": prob_h})
                         else:
-                            if {"desc": desc_p, "prob": prob_p} in st.session_state['selected_bets']: st.session_state['selected_bets'].remove({"desc": desc_p, "prob": prob_p})
-                        st.markdown(f"<h3 style='color:#2196F3; margin-top:-10px;'>{prob_p:.1f}%</h3>", unsafe_allow_html=True)
+                            if {"desc": desc_h, "prob": prob_h} in st.session_state['selected_bets']: st.session_state['selected_bets'].remove({"desc": desc_h, "prob": prob_h})
+                        st.markdown(f"<h3 style='color:#4CAF50; margin-top:-10px;'>{prob_h:.1f}%</h3>", unsafe_allow_html=True)
+                desc_a = f"{row['away_team']} ML"
+                prob_a = row['away_win_prob']
+                with col2:
+                    with st.container(border=True):
+                        if st.checkbox(f"**{desc_a}**", key=f"a_{row['game_id']}"):
+                            if {"desc": desc_a, "prob": prob_a} not in st.session_state['selected_bets']: st.session_state['selected_bets'].append({"desc": desc_a, "prob": prob_a})
+                        else:
+                            if {"desc": desc_a, "prob": prob_a} in st.session_state['selected_bets']: st.session_state['selected_bets'].remove({"desc": desc_a, "prob": prob_a})
+                        st.markdown(f"<h3 style='color:#4CAF50; margin-top:-10px;'>{prob_a:.1f}%</h3>", unsafe_allow_html=True)
+                
+                # Props
+                game_props = props_df[props_df['game_id'] == row['game_id']]
+                p_cols = st.columns(2)
+                for idx, prop in game_props.iterrows():
+                    with p_cols[idx % 2]:
+                        with st.container(border=True):
+                            desc_p = f"{prop['player_name']}: {prop['suggested_side']} {prop['line']} {prop['prop_type']}"
+                            prob_p = prop['confidence_score']
+                            if st.checkbox(f"**{desc_p}**", key=f"p_{prop['prop_id']}"):
+                                if {"desc": desc_p, "prob": prob_p} not in st.session_state['selected_bets']: st.session_state['selected_bets'].append({"desc": desc_p, "prob": prob_p})
+                            else:
+                                if {"desc": desc_p, "prob": prob_p} in st.session_state['selected_bets']: st.session_state['selected_bets'].remove({"desc": desc_p, "prob": prob_p})
+                            st.markdown(f"<h3 style='color:#2196F3; margin-top:-10px;'>{prob_p:.1f}%</h3>", unsafe_allow_html=True)
+
+    # SECCION MAÑANA
+    st.markdown("---")
+    st.markdown("### 📅 PRÓXIMOS JUEGOS (MAÑANA)")
+    tomorrow_games = games_df[games_df['game_date'] != today_str]
+    if tomorrow_games.empty:
+        st.write("No hay juegos programados para mañana.")
+    else:
+        for i, row in tomorrow_games.iterrows():
+            with st.expander(f"🏟️ {row['away_team']} @ {row['home_team']} ({row['game_date']})", expanded=False):
+                # (Repetimos la logica para mañana)
+                st.markdown("#### 🏆 Ganador del Partido")
+                col1, col2 = st.columns(2)
+                desc_h = f"{row['home_team']} ML"; prob_h = row['home_win_prob']
+                with col1:
+                    with st.container(border=True):
+                        if st.checkbox(f"**{desc_h}**", key=f"tm_h_{row['game_id']}"):
+                            if {"desc": desc_h, "prob": prob_h} not in st.session_state['selected_bets']: st.session_state['selected_bets'].append({"desc": desc_h, "prob": prob_h})
+                        else:
+                            if {"desc": desc_h, "prob": prob_h} in st.session_state['selected_bets']: st.session_state['selected_bets'].remove({"desc": desc_h, "prob": prob_h})
+                        st.markdown(f"<h3 style='color:#4CAF50; margin-top:-10px;'>{prob_h:.1f}%</h3>", unsafe_allow_html=True)
+                desc_a = f"{row['away_team']} ML"; prob_a = row['away_win_prob']
+                with col2:
+                    with st.container(border=True):
+                        if st.checkbox(f"**{desc_a}**", key=f"tm_a_{row['game_id']}"):
+                            if {"desc": desc_a, "prob": prob_a} not in st.session_state['selected_bets']: st.session_state['selected_bets'].append({"desc": desc_a, "prob": prob_a})
+                        else:
+                            if {"desc": desc_a, "prob": prob_a} in st.session_state['selected_bets']: st.session_state['selected_bets'].remove({"desc": desc_a, "prob": prob_a})
+                        st.markdown(f"<h3 style='color:#4CAF50; margin-top:-10px;'>{prob_a:.1f}%</h3>", unsafe_allow_html=True)
+                
+                game_props = props_df[props_df['game_id'] == row['game_id']]
+                p_cols = st.columns(2)
+                for idx, prop in game_props.iterrows():
+                    with p_cols[idx % 2]:
+                        with st.container(border=True):
+                            desc_p = f"{prop['player_name']}: {prop['suggested_side']} {prop['line']} {prop['prop_type']}"
+                            prob_p = prop['confidence_score']
+                            if st.checkbox(f"**{desc_p}**", key=f"tm_p_{prop['prop_id']}"):
+                                if {"desc": desc_p, "prob": prob_p} not in st.session_state['selected_bets']: st.session_state['selected_bets'].append({"desc": desc_p, "prob": prob_p})
+                            else:
+                                if {"desc": desc_p, "prob": prob_p} in st.session_state['selected_bets']: st.session_state['selected_bets'].remove({"desc": desc_p, "prob": prob_p})
+                            st.markdown(f"<h3 style='color:#2196F3; margin-top:-10px;'>{prob_p:.1f}%</h3>", unsafe_allow_html=True)
 
     # --- RECIBO DE APUESTA (AHORA EN EL AREA PRINCIPAL PARA MOVILES) ---
     st.markdown("---")
@@ -218,13 +287,29 @@ with tab3:
                 encoded_msg = urllib.parse.quote(msg)
                 wa_url = f"https://wa.me/?text={encoded_msg}"
                 
-                st.markdown(f'''
+            # BARRA FLOTANTE PARA MOVILES (STICKY FOOTER)
+            st.markdown(f'''
+                <div class="floating-footer">
+                    <div style="color:white;">
+                        <div style="font-size:12px; opacity:0.8;">MOMIO TOTAL</div>
+                        <div style="font-size:18px; font-weight:bold; color:#FF5722;">{display_odds}</div>
+                    </div>
                     <a href="{wa_url}" target="_blank" style="text-decoration:none;">
-                        <div style="width:100%; background-color:#25D366; color:white; text-align:center; padding:15px; border-radius:10px; cursor:pointer; font-weight:bold; font-size:20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                            📲 ENVIAR TICKET POR WHATSAPP
-                        </div>
+                        <button style="background-color:#25D366; color:white; border:none; padding:10px 20px; border-radius:5px; font-weight:bold; cursor:pointer;">
+                            📲 ENVIAR POR WA
+                        </button>
                     </a>
-                ''', unsafe_allow_html=True)
+                </div>
+            ''', unsafe_allow_html=True)
+
+            # Recibo normal (se mantiene para escritorio)
+            st.markdown(f'''
+                <a href="{wa_url}" target="_blank" style="text-decoration:none;">
+                    <div style="width:100%; background-color:#25D366; color:white; text-align:center; padding:15px; border-radius:10px; cursor:pointer; font-weight:bold; font-size:20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        📲 ENVIAR TICKET POR WHATSAPP
+                    </div>
+                </a>
+            ''', unsafe_allow_html=True)
 
 
 # TAB 4: JUEGOS PRINCIPALES
