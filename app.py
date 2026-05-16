@@ -47,6 +47,7 @@ if st.sidebar.button("🔄 Actualizar Datos"):
     st.sidebar.success("¡Datos actualizados!")
     st.rerun()
 
+conn = get_connection()
 try:
     games_df = pd.read_sql_query('''
         SELECT d.game_id, d.home_team, d.away_team, d.venue_name, d.weather_condition, d.wind_speed, d.wind_direction,
