@@ -7,7 +7,11 @@ from database import get_connection, init_db
 # Inicializar DB si no existe (importante para la nube)
 init_db()
 
-st.set_page_config(page_title="A chingarnos al casino x Elven", page_icon="🤑", layout="wide")
+# INICIALIZACION GLOBAL DE SESION
+if 'selected_bets' not in st.session_state:
+    st.session_state['selected_bets'] = []
+
+st.set_page_config(page_title="MLB Predictor x Elven MX", page_icon="🤑", layout="wide")
 
 # DISEÑO MINIMALISTA
 st.markdown("""
@@ -32,10 +36,19 @@ st.markdown("""
             background-color: #1A1C24; padding: 15px; border-top: 2px solid #FF5722;
             z-index: 1000; display: flex; justify-content: space-between; align-items: center;
         }
-        .main { padding-bottom: 100px !important; }
+        .main { padding-bottom: 120px !important; }
     }
     </style>
 """, unsafe_allow_html=True)
+
+# Helper para añadir/quitar apuestas (CALLBACK)
+def toggle_bet(desc, prob):
+    current_bets = st.session_state.get('selected_bets', [])
+    exists = any(b['desc'] == desc for b in current_bets)
+    if exists:
+        st.session_state['selected_bets'] = [b for b in current_bets if b['desc'] != desc]
+    else:
+        st.session_state['selected_bets'].append({"desc": desc, "prob": prob})
 
 # Helper para calcular cuota combinada
 def calc_parlay_odds(probs):
@@ -107,9 +120,6 @@ tab1, tab2, tab3, tab4 = st.tabs(["🎯 Player Props", "🤑 Parlays Sugeridos",
 
 # TAB 1: PLAYER PROPS
 with tab1:
-    if 'selected_bets' not in st.session_state:
-        st.session_state['selected_bets'] = []
-        
     st.subheader("🔥 TOP 10 RECOMENDACIONES DEL DÍA")
     best_props = props_df.sort_values(by='confidence_score', ascending=False).head(10)
     
@@ -141,21 +151,16 @@ with tab1:
                 st.markdown(f"<div style='text-align:center; font-size:12px; opacity:0.8;'>{row['prop_type']}</div>", unsafe_allow_html=True)
                 st.markdown(f"<div style='text-align:center; color:#FF5722; font-weight:bold;'>{row['american_odds']}</div>", unsafe_allow_html=True)
                 
-                # BOTON DE ACCION (Añadir/Quitar)
+                # BOTON DE ACCION (Añadir/Quitar con CALLBACK)
                 desc_p = f"{row['player_name']}: {row['suggested_side']} {row['line']} {row['prop_type']}"
                 is_selected = any(b['desc'] == desc_p for b in st.session_state['selected_bets'])
                 
                 btn_label = "✅ EN TICKET" if is_selected else "➕ AÑADIR"
-                if st.button(btn_label, key=f"bp_{row['prop_id']}", use_container_width=True):
-                    if not is_selected:
-                        st.session_state['selected_bets'].append({"desc": desc_p, "prob": row['confidence_score']})
-                        st.toast(f"➕ {row['player_name']} añadido")
-                    else:
-                        st.session_state['selected_bets'] = [b for b in st.session_state['selected_bets'] if b['desc'] != desc_p]
-                        st.toast(f"🗑️ {row['player_name']} quitado")
-                    st.rerun()
+                st.button(btn_label, key=f"bp_{row['prop_id']}", use_container_width=True, on_click=toggle_bet, args=(desc_p, row['confidence_score']))
                 
                 st.markdown(f"<div style='text-align:center; font-size:22px; font-weight:bold; color:#4CAF50;'>{row['confidence_score']:.1f}%</div>", unsafe_allow_html=True)
+                if row.get('key_insight'):
+                    st.caption(f"💡 {row['key_insight']}")
 
 # TAB 2: PARLAYS DE LA IA
 with tab2:

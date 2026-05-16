@@ -178,6 +178,19 @@ def generate_predictions():
             # Solo agregar al parlay si no es tan arriesgado (no homerun)
             if hit_conf > 58:
                 all_bets.append({"desc": f"{batter_name} OVER {line} {prop_type}", "prob": hit_conf})
+        
+        # PROCESAR BATEADORES REALES (NUEVO)
+        cursor.execute("SELECT prop_id, player_name, prop_type FROM player_props WHERE game_id = ? AND prop_type = 'Bateador'", (row['game_id'],))
+        real_batters = cursor.fetchall()
+        for p_id_db, p_name, p_type in real_batters:
+            # Asignar jugada de Hits o Bases basada en OPS del equipo
+            target_prop = random.choice(["Hits Totales", "Bases Totales", "Carreras Anotadas"])
+            cursor.execute('''UPDATE player_props SET prop_type = ?, line = ?, suggested_side = ?, american_odds = ?, confidence_score = ? WHERE prop_id = ?''',
+                           (target_prop, 1.5 if target_prop != "Carreras Anotadas" else 0.5, "OVER" if h_ops > 0.78 else "UNDER", prob_to_american_odds(56.0), 56.0, p_id_db))
+            
+            # Solo agregar al parlay si no es tan arriesgado (no homerun)
+            if hit_conf > 58:
+                all_bets.append({"desc": f"{p_name} OVER 1.5 {target_prop}", "prob": 56.0})
     
     # 3. ARMAR AI PARLAYS MULTIPLES
     if len(all_bets) >= 5:
