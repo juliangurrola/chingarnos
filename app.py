@@ -113,30 +113,32 @@ except:
     all_bets_list = []
     
     # 1. Añadir jugadas de equipos (Moneyline / Totales)
-    for _, row in games_df.iterrows():
-        all_bets_list.append({
-            "type": "EQUIPO",
-            "name": f"{row['away_team']} @ {row['home_team']}",
-            "play": row['suggested_bet'],
-            "conf": row['confidence_score'],
-            "odds": "VAR",
-            "insight": row.get('key_insight', 'Análisis de equipo basado en stats.'),
-            "p_id": 0
-        })
+    if not games_df.empty:
+        for _, row in games_df.iterrows():
+            all_bets_list.append({
+                "type": "EQUIPO",
+                "name": str(row.get('home_team', 'Partido')),
+                "play": str(row.get('suggested_bet', 'N/A')),
+                "conf": float(row.get('confidence_score', 0)),
+                "odds": "VAR",
+                "insight": str(row.get('key_insight', 'Análisis disponible.')),
+                "p_id": 0
+            })
     
     # 2. Añadir jugadas de jugadores
-    for _, row in props_df.iterrows():
-        all_bets_list.append({
-            "type": "JUGADOR",
-            "name": row['player_name'],
-            "play": f"{row['suggested_side']} {row['line']} {row['prop_type']}",
-            "conf": row['confidence_score'],
-            "odds": row['american_odds'],
-            "insight": row.get('key_insight', 'Racha positiva detectada.'),
-            "p_id": row.get('player_id', 0)
-        })
+    if not props_df.empty:
+        for _, row in props_df.iterrows():
+            all_bets_list.append({
+                "type": "JUGADOR",
+                "name": str(row.get('player_name', 'Jugador')),
+                "play": f"{row.get('suggested_side', '')} {row.get('line', '')} {row.get('prop_type', '')}",
+                "conf": float(row.get('confidence_score', 0)),
+                "odds": str(row.get('american_odds', 'VAR')),
+                "insight": str(row.get('key_insight', 'Proyección estadística.')),
+                "p_id": row.get('player_id', 0)
+            })
     
-    # Ordenar y tomar los mejores 10
+    # Ordenar y tomar los mejores 10 (con seguridad)
     top_10_unified = sorted(all_bets_list, key=lambda x: x['conf'], reverse=True)[:10]
 
 conn.close()
@@ -159,10 +161,13 @@ with tab1:
             
             with col_img:
                 if bet['type'] == "JUGADOR":
-                    p_id = int(float(bet['p_id']))
-                    if p_id > 0:
-                        st.image(f"https://img.mlbstatic.com/mlb-photos/person/{p_id}@3x.jpg", width=70)
-                    else: st.markdown("<h1 style='text-align:center;'>⚾</h1>", unsafe_allow_html=True)
+                    try:
+                        p_id = int(float(bet['p_id']))
+                        if p_id > 0:
+                            st.image(f"https://img.mlbstatic.com/mlb-photos/person/{p_id}@3x.jpg", width=70)
+                        else: st.markdown("<h1 style='text-align:center;'>⚾</h1>", unsafe_allow_html=True)
+                    except:
+                        st.markdown("<h1 style='text-align:center;'>⚾</h1>", unsafe_allow_html=True)
                 else:
                     st.markdown("<h1 style='text-align:center;'>🏟️</h1>", unsafe_allow_html=True)
             
