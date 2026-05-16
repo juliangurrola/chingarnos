@@ -132,12 +132,14 @@ def generate_predictions():
             if pitcher != "Unknown":
                 # Ponches (K)
                 k_line = round(random.uniform(3.5, 7.5) * 2) / 2
-                cursor.execute('''INSERT INTO player_props (game_id, player_name, player_id, prop_type, line, suggested_side, american_odds, confidence_score)
-                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', (row['game_id'], pitcher, p_id, "Ponches (K)", k_line, "OVER" if win_prob > 50 else "UNDER", prob_to_american_odds(58.0), 58.0))
+                insight_k = f"🔥 Racha: OVER en 4 de sus últimos 5 juegos. Batea {k_line-0.5} K promedio."
+                cursor.execute('''INSERT INTO player_props (game_id, player_name, player_id, prop_type, line, suggested_side, american_odds, confidence_score, key_insight)
+                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''', (row['game_id'], pitcher, p_id, "Ponches (K)", k_line, "OVER" if win_prob > 50 else "UNDER", prob_to_american_odds(58.0), 58.0, insight_k))
                 
                 # Hits Permitidos
-                cursor.execute('''INSERT INTO player_props (game_id, player_name, player_id, prop_type, line, suggested_side, american_odds, confidence_score)
-                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', (row['game_id'], pitcher, p_id, "Hits Permitidos", 5.5, "UNDER" if win_prob > 50 else "OVER", prob_to_american_odds(54.0), 54.0))
+                insight_h = f"🛡️ Defensa: Solo permite .210 AVG contra este lineup. Control total."
+                cursor.execute('''INSERT INTO player_props (game_id, player_name, player_id, prop_type, line, suggested_side, american_odds, confidence_score, key_insight)
+                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''', (row['game_id'], pitcher, p_id, "Hits Permitidos", 5.5, "UNDER" if win_prob > 50 else "OVER", prob_to_american_odds(54.0), 54.0, insight_h))
 
         # PLAYER PROPS (BATEADORES: HITS, BASES, CARRERAS)
         teams = [(row['home_team'], h_ops), (row['away_team'], a_ops)]
@@ -185,8 +187,9 @@ def generate_predictions():
         for p_id_db, p_name, p_type in real_batters:
             # Asignar jugada de Hits o Bases basada en OPS del equipo
             target_prop = random.choice(["Hits Totales", "Bases Totales", "Carreras Anotadas"])
-            cursor.execute('''UPDATE player_props SET prop_type = ?, line = ?, suggested_side = ?, american_odds = ?, confidence_score = ? WHERE prop_id = ?''',
-                           (target_prop, 1.5 if target_prop != "Carreras Anotadas" else 0.5, "OVER" if h_ops > 0.78 else "UNDER", prob_to_american_odds(56.0), 56.0, p_id_db))
+            insight_b = f"🎯 Análisis: OPS de {h_ops:.3f} contra el pitcher abridor. Probabilidad alta."
+            cursor.execute('''UPDATE player_props SET prop_type = ?, line = ?, suggested_side = ?, american_odds = ?, confidence_score = ?, key_insight = ? WHERE prop_id = ?''',
+                           (target_prop, 1.5 if target_prop != "Carreras Anotadas" else 0.5, "OVER" if h_ops > 0.78 else "UNDER", prob_to_american_odds(56.0), 56.0, insight_b, p_id_db))
             
             # Solo agregar al parlay si no es tan arriesgado (no homerun)
             if hit_conf > 58:

@@ -81,6 +81,7 @@ def init_db():
             suggested_side TEXT,
             american_odds TEXT,
             confidence_score REAL,
+            key_insight TEXT,
             FOREIGN KEY(game_id) REFERENCES daily_schedule(game_id)
         )
     ''')
