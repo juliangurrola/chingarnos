@@ -135,29 +135,22 @@ def generate_predictions():
             "prob": confidence
         })
         
-        # RUNLINE (Handicap)
-        rl_home_prob = home_win_prob - 15.0 
-        if rl_home_prob > 0:
-            cursor.execute('''
-                INSERT INTO player_props 
-                (game_id, player_name, player_id, prop_type, line, suggested_side, american_odds, confidence_score)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (row['game_id'], row['home_team'], 0, "Runline", -1.5, "Handicap", prob_to_american_odds(rl_home_prob), rl_home_prob))
-            if rl_home_prob > 55:
-                all_bets.append({"desc": f"{row['home_team']} -1.5 (Runline)", "prob": rl_home_prob})
-                
-        # GAME PROPS (CARRERAS Y HITS DEL JUEGO)
-        cursor.execute('''INSERT INTO player_props (game_id, player_name, player_id, prop_type, line, suggested_side, american_odds, confidence_score)
-                          VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', 
-                       (row['game_id'], f"{row['away_team']} @ {row['home_team']}", 0, "Carreras Totales", expected_runs, "OVER", prob_to_american_odds(55.0), 55.0))
-        cursor.execute('''INSERT INTO player_props (game_id, player_name, player_id, prop_type, line, suggested_side, american_odds, confidence_score)
-                          VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', 
-                       (row['game_id'], f"{row['away_team']} @ {row['home_team']}", 0, "Hits Totales", 15.5, "UNDER", prob_to_american_odds(52.0), 52.0))
-        
-        # TEAM PROPS (CARRERAS POR EQUIPO)
-        cursor.execute('''INSERT INTO player_props (game_id, player_name, player_id, prop_type, line, suggested_side, american_odds, confidence_score)
-                          VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', 
-                       (row['game_id'], row['home_team'], 0, "Team Total Runs", expected_runs/2 + 0.5, "OVER", prob_to_american_odds(58.0), 58.0))
+        # --- JUGADAS REDITUABLES (SHARPS) ---
+        # 1. RUNLINE (HANDICAP -1.5)
+        rl_prob = home_win_prob - 12.0
+        if rl_prob > 35:
+            cursor.execute('''INSERT INTO player_props (game_id, player_name, player_id, prop_type, line, suggested_side, american_odds, confidence_score, key_insight)
+                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                           (row['game_id'], row['home_team'], 0, "Runline (Handicap)", -1.5, "LOCAL", "+155", rl_prob + 10, "Gran valor: Favorito para ganar por ventaja cómoda."))
+            all_bets.append({"desc": f"{row['home_team']} -1.5 Runline", "prob": rl_prob + 10})
+
+        # 2. TOTAL DE EQUIPO (OVER)
+        tt_line = 3.5 if h_ops < 0.760 else 4.5
+        tt_prob = 55.0 + (h_ops * 10)
+        cursor.execute('''INSERT INTO player_props (game_id, player_name, player_id, prop_type, line, suggested_side, american_odds, confidence_score, key_insight)
+                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                       (row['game_id'], row['home_team'], 0, "Team Total Runs", tt_line, "OVER", "-105", tt_prob, f"Ofensiva de {row['home_team']} muy sólida hoy."))
+        all_bets.append({"desc": f"{row['home_team']} Over {tt_line} Carreras", "prob": tt_prob})
                 
         # --- JUGADAS DE PITCHERS REALES ---
         pitchers = [(row['home_pitcher_name'], row['home_pitcher_id'], home_win_prob), 
