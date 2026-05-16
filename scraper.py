@@ -86,6 +86,19 @@ def fetch_daily_schedule():
             away_pitcher = game['teams']['away'].get('probablePitcher', {})
             away_pitcher_id = away_pitcher.get('id', 0)
             away_pitcher_name = away_pitcher.get('fullName', 'Unknown')
+
+            # OBTENER LINEUP/BATEADORES (Nuevos datos)
+            try:
+                roster_url = f"https://statsapi.mlb.com/api/v1/teams/{home_id}/roster"
+                r_data = requests.get(roster_url).json()
+                # Tomamos los primeros 5 bateadores destacados
+                for p in r_data.get('roster', [])[:5]:
+                    p_name = p['person']['fullName']
+                    p_id = p['person']['id']
+                    if p['position']['type'] != 'Pitcher':
+                        cursor.execute('INSERT OR REPLACE INTO player_props (game_id, player_name, player_id, prop_type) VALUES (?, ?, ?, ?)',
+                                       (game_id, p_name, p_id, "Bateador"))
+            except: pass
             
             cursor.execute('''
                 INSERT OR REPLACE INTO daily_schedule 
