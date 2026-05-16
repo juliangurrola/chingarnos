@@ -82,15 +82,62 @@ with col_title:
     st.title("🤑 MLB Predictor x Elven MX")
     st.markdown("Análisis inteligente de apuestas.")
 
-st.sidebar.header("⚙️ Opciones")
-if st.sidebar.button("🔄 Actualizar Datos"):
-    import subprocess
-    import sys
-    with st.spinner("Descargando datos..."):
-        subprocess.run([sys.executable, "scraper.py"])
-        subprocess.run([sys.executable, "model.py"])
-    st.sidebar.success("¡Datos actualizados!")
-    st.rerun()
+# --- SECCION LATERAL (SIDEBAR): TICKET DE APUESTAS AL PRINCIPIO ---
+with st.sidebar:
+    st.subheader("🛒 Tu Ticket")
+    
+    # Cálculos previos para el ticket
+    display_odds = "0"
+    payout = 0.0
+    wa_url = "#"
+    
+    if 'selected_bets' in st.session_state and len(st.session_state['selected_bets']) > 0:
+        st.markdown("**Selecciones:**")
+        probs = []
+        for b in st.session_state['selected_bets']:
+            with st.container(border=True):
+                st.caption(f"✅ {b['desc']}")
+                probs.append(b['prob'])
+        
+        wager = st.number_input("Monto a apostar ($):", min_value=10.0, value=100.0, step=10.0, key="wager_side")
+        combined_odds = calc_parlay_odds(probs)
+        
+        if combined_odds != "N/A":
+            display_odds = f"+{combined_odds}" if combined_odds > 0 else f"{combined_odds}"
+            st.metric("MOMIO", display_odds)
+            profit = wager * (combined_odds / 100.0) if combined_odds > 0 else wager * (100.0 / abs(combined_odds))
+            payout = wager + profit
+            st.metric("PAGO TOTAL", f"${payout:.2f}")
+        
+        msg = f"🎰 *MI PARLAY GANADOR* (Elven MX)\n\n"
+        for b in st.session_state['selected_bets']: msg += f"• {b['desc']}\n"
+        msg += f"\n*MOMIO:* {display_odds}\n*APUESTA:* ${wager:.2f}\n*PAGO:* ${payout:.2f}\n\n¡A cobrar! ⚾💸"
+        wa_url = f"https://wa.me/?text={urllib.parse.quote(msg)}"
+        
+        st.markdown(f'''
+            <a href="{wa_url}" target="_blank" style="text-decoration:none;">
+                <div style="width:100%; background: linear-gradient(90deg, #25D366, #128C7E); color:white; text-align:center; padding:18px; border-radius:15px; cursor:pointer; font-weight:bold; font-size:22px; box-shadow: 0 6px 20px rgba(37,211,102,0.4); margin-top:10px;">
+                    📲 ENVIAR TICKET
+                </div>
+            </a>
+        ''', unsafe_allow_html=True)
+        
+        if st.button("🗑️ Limpiar Ticket", key="clear_side"):
+            st.session_state['selected_bets'] = []
+            st.rerun()
+    else:
+        st.info("Selecciona jugadas para armar tu parlay.")
+
+    st.markdown("---")
+    st.header("⚙️ Opciones")
+    if st.button("🔄 Actualizar Datos", key="update_side"):
+        import subprocess
+        import sys
+        with st.spinner("Descargando datos..."):
+            subprocess.run([sys.executable, "scraper.py"])
+            subprocess.run([sys.executable, "model.py"])
+        st.sidebar.success("¡Datos actualizados!")
+        st.rerun()
 
 games_df = pd.DataFrame()
 props_df = pd.DataFrame()
