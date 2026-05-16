@@ -230,28 +230,39 @@ with tab3:
 # TAB 4: JUEGOS PRINCIPALES
 with tab4:
     st.subheader("📊 Análisis de Todos los Partidos")
-    for _, row in games_df.iterrows():
-        with st.expander(f"{row['away_team']} vs {row['home_team']} - {row['venue_name']}"):
-            col1, col2 = st.columns(2)
-            with col1:
-                st.markdown("**Pitchers Abridores:**")
-                col_p1, col_p2 = st.columns(2)
-                with col_p1:
-                    if row['home_pitcher_id'] > 0:
-                        st.image(f"https://img.mlbstatic.com/mlb-photos/person/{row['home_pitcher_id']}@3x.jpg", width=80)
-                    st.write(f"🏠 {row['home_team']}: {row['home_pitcher_name']}")
-                with col_p2:
-                    if row['away_pitcher_id'] > 0:
-                        st.image(f"https://img.mlbstatic.com/mlb-photos/person/{row['away_pitcher_id']}@3x.jpg", width=80)
-                    st.write(f"✈️ {row['away_team']}: {row['away_pitcher_name']}")
-            with col2:
-                st.markdown("**Condiciones (Estadio/Clima):**")
-                st.write(f"🌤️ {row['weather_condition']}")
-                st.write(f"💨 Viento: {row['wind_speed']} mph, {row['wind_direction']}")
+    
+    if not games_df.empty:
+        from datetime import datetime
+        today_str = datetime.now().strftime('%Y-%m-%d')
+        
+        # Ordenar por fecha
+        games_df['game_date_dt'] = pd.to_datetime(games_df['game_date'])
+        sorted_games = games_df.sort_values(by=['game_date_dt', 'home_team'])
+        
+        for _, row in sorted_games.iterrows():
+            date_label = "HOY ⚾" if row['game_date'] == today_str else f"MAÑANA ({row['game_date']}) 📅"
             
-            st.progress(int(row['home_win_prob']), text=f"Probabilidad de Local ({row['home_team']}): {row['home_win_prob']:.1f}%")
-            st.metric("Carreras Totales Esperadas", f"{row['expected_total_runs']} carreras")
-            
-            with st.container(border=True):
-                st.markdown("#### 📌 Análisis de Referencia (Insights)")
-                st.info(row['key_insight'])
+            with st.expander(f"{date_label} | {row['away_team']} @ {row['home_team']}"):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown("**Pitchers Abridores:**")
+                    col_p1, col_p2 = st.columns(2)
+                    with col_p1:
+                        if row['home_pitcher_id'] > 0:
+                            st.image(f"https://img.mlbstatic.com/mlb-photos/person/{row['home_pitcher_id']}@3x.jpg", width=80)
+                        st.write(f"🏠 {row['home_team']}: {row['home_pitcher_name']}")
+                    with col_p2:
+                        if row['away_pitcher_id'] > 0:
+                            st.image(f"https://img.mlbstatic.com/mlb-photos/person/{row['away_pitcher_id']}@3x.jpg", width=80)
+                        st.write(f"✈️ {row['away_team']}: {row['away_pitcher_name']}")
+                with col2:
+                    st.markdown("**Condiciones (Estadio/Clima):**")
+                    st.write(f"🌤️ {row['weather_condition']}")
+                    st.write(f"💨 Viento: {row['wind_speed']} mph, {row['wind_direction']}")
+                
+                st.progress(int(row['home_win_prob']), text=f"Probabilidad de Local ({row['home_team']}): {row['home_win_prob']:.1f}%")
+                st.metric("Carreras Totales Esperadas", f"{row['expected_total_runs']} carreras")
+                
+                with st.container(border=True):
+                    st.markdown("#### 📌 Análisis de Referencia (Insights)")
+                    st.info(row['key_insight'])
