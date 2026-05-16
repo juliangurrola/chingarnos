@@ -130,14 +130,19 @@ with st.sidebar:
 
     st.markdown("---")
     st.header("⚙️ Opciones")
+    st.caption("🚀 **VERSIÓN: PRO V2 (NEWS & LOGOS)**")
+    
     if st.button("🔄 Actualizar Datos", key="update_side"):
-        import subprocess
-        import sys
-        with st.spinner("Descargando datos..."):
-            subprocess.run([sys.executable, "scraper.py"])
-            subprocess.run([sys.executable, "model.py"])
-        st.sidebar.success("¡Datos actualizados!")
-        st.rerun()
+        with st.spinner("Actualizando Inteligencia MLB..."):
+            try:
+                from scraper import fetch_daily_schedule
+                from model import generate_predictions
+                fetch_daily_schedule()
+                generate_predictions()
+                st.sidebar.success("¡Datos y Noticias actualizados!")
+                st.rerun()
+            except Exception as e:
+                st.sidebar.error(f"Error: {e}")
 
 games_df = pd.DataFrame()
 props_df = pd.DataFrame()
