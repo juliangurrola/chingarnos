@@ -15,6 +15,17 @@ st.markdown("""
     .stApp { background-color: #0E1117; }
     [data-testid="stExpander"], [data-testid="stMetric"] { background-color: #1A1C24 !important; border: 1px solid #333 !important; }
     .stButton>button { background-color: #FF5722 !important; border: none !important; color: white !important; }
+    
+    /* Menu de Pestañas Fijo (Sticky) */
+    [data-testid="stTabs"] {
+        position: sticky;
+        top: 0;
+        z-index: 999;
+        background-color: #0E1117;
+        padding-top: 10px;
+        padding-bottom: 5px;
+    }
+    
     @media (max-width: 768px) {
         .floating-footer {
             position: fixed; bottom: 0; left: 0; width: 100%;
@@ -130,11 +141,14 @@ with tab1:
                 st.markdown(f"<div style='text-align:center; font-size:12px; opacity:0.8;'>{row['prop_type']}</div>", unsafe_allow_html=True)
                 st.markdown(f"<div style='text-align:center; color:#FF5722; font-weight:bold;'>{row['american_odds']}</div>", unsafe_allow_html=True)
                 
-                # Checkbox
+                # BOTON GRANDE PARA AÑADIR
                 desc_p = f"{row['player_name']}: {row['suggested_side']} {row['line']} {row['prop_type']}"
-                if st.checkbox("Añadir", key=f"bp_{row['prop_id']}"):
+                if st.button(f"➕ AÑADIR", key=f"bp_{row['prop_id']}", use_container_width=True):
                     if not any(b['desc'] == desc_p for b in st.session_state['selected_bets']):
                         st.session_state['selected_bets'].append({"desc": desc_p, "prob": row['confidence_score']})
+                        st.toast(f"✅ {row['player_name']} añadido")
+                    else:
+                        st.warning("Ya está en el ticket")
                 
                 st.markdown(f"<div style='text-align:center; font-size:22px; font-weight:bold; color:#4CAF50;'>{row['confidence_score']:.1f}%</div>", unsafe_allow_html=True)
 
@@ -310,11 +324,11 @@ with st.sidebar:
         msg += f"\n*MOMIO:* {display_odds}\n*APUESTA:* ${wager:.2f}\n*PAGO:* ${payout:.2f}\n\n¡A cobrar! ⚾💸"
         wa_url = f"https://wa.me/?text={urllib.parse.quote(msg)}"
         
-        # Boton grande para WhatsApp
+        # Boton grande para WhatsApp (Llamativo)
         st.markdown(f'''
             <a href="{wa_url}" target="_blank" style="text-decoration:none;">
-                <div style="width:100%; background-color:#25D366; color:white; text-align:center; padding:12px; border-radius:10px; cursor:pointer; font-weight:bold; font-size:16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    📲 ENVIAR POR WA
+                <div style="width:100%; background: linear-gradient(90deg, #25D366, #128C7E); color:white; text-align:center; padding:18px; border-radius:15px; cursor:pointer; font-weight:bold; font-size:22px; box-shadow: 0 6px 20px rgba(37,211,102,0.4); margin-top:10px;">
+                    📲 ENVIAR TICKET
                 </div>
             </a>
         ''', unsafe_allow_html=True)
@@ -325,16 +339,19 @@ with st.sidebar:
     else:
         st.info("Selecciona jugadas para armar tu parlay.")
 
-    # BARRA FLOTANTE PARA MOVILES (STICKY FOOTER - Se mantiene para moviles donde no hay sidebar visible)
-    if 'selected_bets' in st.session_state and len(st.session_state['selected_bets']) > 0:
+        # BARRA FLOTANTE PARA MOVILES (STICKY FOOTER - Se mantiene para moviles donde no hay sidebar visible)
         st.markdown(f'''
             <div class="floating-footer">
-                <div style="color:white;">
-                    <div style="font-size:10px; opacity:0.8;">MOMIO</div>
-                    <div style="font-size:16px; font-weight:bold; color:#FF5722;">{display_odds}</div>
+                <div style="color:white; flex-grow:1;">
+                    <div style="font-size:10px; font-weight:bold; color:#4CAF50;">{len(st.session_state['selected_bets'])} JUGADAS</div>
+                    <div style="font-size:18px; font-weight:bold; color:#FF5722;">{display_odds}</div>
+                </div>
+                <div style="color:white; text-align:center; padding-right:15px;">
+                    <div style="font-size:10px; opacity:0.8;">PAGO</div>
+                    <div style="font-size:16px; font-weight:bold; color:#FFF;">${payout:.0f}</div>
                 </div>
                 <a href="{wa_url}" target="_blank" style="text-decoration:none;">
-                    <button style="background-color:#25D366; color:white; border:none; padding:8px 15px; border-radius:20px; font-weight:bold; font-size:12px; cursor:pointer;">
+                    <button style="background-color:#25D366; color:white; border:none; padding:12px 20px; border-radius:30px; font-weight:bold; font-size:14px; cursor:pointer; box-shadow: 0 4px 15px rgba(37,211,102,0.4);">
                         📲 ENVIAR
                     </button>
                 </a>
