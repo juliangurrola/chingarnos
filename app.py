@@ -220,7 +220,7 @@ if not props_df.empty:
             "odds": str(row.get('american_odds', 'VAR')),
             "insight": str(row.get('key_insight', 'Proyección estadística.')),
             "p_id": row.get('player_id', 0),
-            "t_id": 0
+            "t_id": row.get('team_id', 0)
         })
 
 # --- ALGORITMO DE BALANCE SHARP (TOP 10 DIVERSIFICADO) ---
@@ -368,9 +368,12 @@ with tab3:
                     with st.container(border=True):
                         c_img, c_det = st.columns([1, 4])
                         p_id = prop.get('player_id', 0)
+                        t_id = prop.get('team_id', 0)
                         with c_img:
                             if p_id > 0:
                                 st.image(f"https://img.mlbstatic.com/mlb-photos/person/{p_id}@3x.jpg", width=60)
+                            elif t_id > 0:
+                                st.image(f"https://www.mlbstatic.com/team-logos/{t_id}.svg", width=60)
                             else:
                                 st.markdown("### 🏟️")
                         with c_det:

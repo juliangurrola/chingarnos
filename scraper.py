@@ -30,14 +30,23 @@ def fetch_team_stats(team_id):
     except: return None
 
 def fetch_mlb_news():
-    # Usamos un feed de noticias destacado (Simulado con datos reales de la API si fuera posible, o Headlines)
-    # Por ahora, generamos 3 noticias clave de tendencia MLB
-    news = [
-        {"title": "Dominio en la Loma: Pitchers abridores con racha de +10K", "link": "https://www.mlb.com/news", "summary": "Los ponches están en su punto más alto esta semana.", "date": "HOY"},
-        {"title": "Cambios en el Lineup: Estrellas regresan de la lista de lesionados", "link": "https://www.mlb.com/news", "summary": "Varios equipos recuperan a sus 4tos bats hoy.", "date": "HOY"},
-        {"title": "Tendencia de Apuestas: El OVER domina en parques con calor", "link": "https://www.mlb.com/news", "summary": "Análisis de apuestas indica ventaja en juegos vespertinos.", "date": "HOY"}
-    ]
-    return news
+    import xml.etree.ElementTree as ET
+    url = "https://news.google.com/rss/search?q=MLB+highlights+news&hl=es-419&gl=MX&ceid=MX:es-419"
+    try:
+        res = requests.get(url)
+        root = ET.fromstring(res.content)
+        news = []
+        for item in root.findall('.//item')[:10]:
+            news.append({
+                "title": item.find('title').text,
+                "link": item.find('link').text,
+                "summary": "Titular de tendencia global en el mundo del béisbol.",
+                "date": item.find('pubDate').text[:16]
+            })
+        return news
+    except Exception as e:
+        print(f"Error en noticias: {e}")
+        return []
 
 def fetch_daily_schedule():
     today = datetime.now()
@@ -106,8 +115,8 @@ def fetch_daily_schedule():
                         p_name = p['person']['fullName']
                         p_id = p['person']['id']
                         if p['position']['type'] != 'Pitcher' and p_id > 0:
-                            cursor.execute('INSERT OR REPLACE INTO player_props (game_id, player_name, player_id, prop_type) VALUES (?, ?, ?, ?)',
-                                           (g_id, p_name, p_id, "Bateador"))
+                            cursor.execute('INSERT OR REPLACE INTO player_props (game_id, player_name, player_id, team_id, prop_type) VALUES (?, ?, ?, ?, ?)',
+                                           (g_id, p_name, p_id, t_id, "Bateador"))
                 except: pass
             
             cursor.execute('''

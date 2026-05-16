@@ -78,6 +78,7 @@ def init_db():
             game_id INTEGER,
             player_name TEXT,
             player_id INTEGER,
+            team_id INTEGER,
             prop_type TEXT,
             line REAL,
             suggested_side TEXT,
@@ -116,7 +117,7 @@ def init_db():
     except sqlite3.OperationalError: pass
 
     try:
-        cursor.execute('ALTER TABLE player_props ADD COLUMN player_id INTEGER')
+        cursor.execute('ALTER TABLE player_props ADD COLUMN team_id INTEGER')
     except sqlite3.OperationalError: pass
         
     conn.commit()
