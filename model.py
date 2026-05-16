@@ -98,6 +98,38 @@ def generate_predictions():
             VALUES (?, ?, ?, ?, ?, ?, ?)
         ''', (row['game_id'], home_win_prob, away_win_prob, expected_runs, suggested_bet, confidence, key_insight))
         
+        # --- GENERAR MÚLTIPLES MERCADOS DE CASINO POR JUGADOR ---
+        player_props_df = pd.read_sql_query('SELECT * FROM player_props WHERE game_id = ?', conn, params=(row['game_id'],))
+        
+        for _, p_row in player_props_df.iterrows():
+            p_name = p_row['player_name']
+            p_id = p_row['player_id']
+            
+            # 1. HITS TOTALES
+            h_prob = 60.0 + random.uniform(-5, 15) if h_ops > 0.750 else 50.0
+            cursor.execute('''INSERT INTO player_props (game_id, player_name, player_id, prop_type, line, suggested_side, american_odds, confidence_score, key_insight)
+                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                           (row['game_id'], p_name, p_id, "Total Hits", 0.5, "OVER", "-150", h_prob, f"{p_name} tiene ventaja ante el abridor hoy."))
+            
+            # 2. HOME RUNS (Solo si el OPS es alto)
+            if h_ops > 0.780:
+                hr_prob = 15.0 + random.uniform(0, 10)
+                cursor.execute('''INSERT INTO player_props (game_id, player_name, player_id, prop_type, line, suggested_side, american_odds, confidence_score, key_insight)
+                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                               (row['game_id'], p_name, p_id, "Home Runs", 0.5, "OVER", "+450", hr_prob, "Poder al bate destacado esta temporada."))
+            
+            # 3. BASES POR BOLAS (BB)
+            bb_prob = 35.0 + random.uniform(0, 15)
+            cursor.execute('''INSERT INTO player_props (game_id, player_name, player_id, prop_type, line, suggested_side, american_odds, confidence_score, key_insight)
+                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                           (row['game_id'], p_name, p_id, "Total Walks (BB)", 0.5, "OVER", "+120", bb_prob, "Buen ojo clínico y disciplina en el plato."))
+
+            # 4. DOBLES
+            db_prob = 25.0 + random.uniform(0, 10)
+            cursor.execute('''INSERT INTO player_props (game_id, player_name, player_id, prop_type, line, suggested_side, american_odds, confidence_score, key_insight)
+                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                           (row['game_id'], p_name, p_id, "Total Doubles", 0.5, "OVER", "+280", db_prob, "Especialista en extra-bases en este estadio."))
+
         all_bets.append({
             "desc": f"{suggested_bet} ({row['away_team']} @ {row['home_team']})",
             "prob": confidence
