@@ -9,22 +9,71 @@ init_db()
 
 st.set_page_config(page_title="A chingarnos al casino x Elven", page_icon="🤑", layout="wide")
 
-# CSS para Barra Flotante en Móviles
+# UI/UX PRO MAX DESIGN SYSTEM
 st.markdown("""
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     <style>
+    /* Global Styles */
+    html, body, [class*="st-"] {
+        font-family: 'DM Sans', sans-serif;
+    }
+    h1, h2, h3, h4 {
+        font-family: 'Space Grotesk', sans-serif;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    /* Background & Glassmorphism */
+    .stApp {
+        background: radial-gradient(circle at top right, #1e1e2f, #0d0d0d);
+    }
+    
+    [data-testid="stExpander"], [data-testid="stMetric"], .st-emotion-cache-16ids9n {
+        background: rgba(255, 255, 255, 0.03) !important;
+        backdrop-filter: blur(10px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 15px !important;
+        transition: all 0.3s ease;
+    }
+    
+    [data-testid="stExpander"]:hover {
+        border-color: #FF5722 !important;
+        box-shadow: 0 0 15px rgba(255, 87, 34, 0.2);
+    }
+
+    /* Buttons & Metrics */
+    .stButton>button {
+        background: linear-gradient(90deg, #FF5722, #FF9800) !important;
+        border: none !important;
+        color: white !important;
+        font-weight: bold !important;
+        border-radius: 8px !important;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    [data-testid="stMetricValue"] {
+        color: #FF5722 !important;
+        font-weight: 700 !important;
+    }
+
+    /* Floating Footer Pro Max */
     @media (max-width: 768px) {
         .floating-footer {
             position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background-color: #1E1E1E;
-            padding: 15px;
-            border-top: 2px solid #FF5722;
+            bottom: 20px;
+            left: 5%;
+            width: 90%;
+            background: rgba(30, 30, 30, 0.9) !important;
+            backdrop-filter: blur(15px) !important;
+            padding: 12px 20px;
+            border: 1px solid #FF5722;
+            border-radius: 50px;
             z-index: 1000;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
         .main { padding-bottom: 120px !important; }
     }
@@ -108,9 +157,12 @@ with tab1:
         with cols[i % 3]:
             with st.container(border=True):
                 # FOTO DEL JUGADOR
-                if row['player_id'] > 0:
-                    img_url = f"https://img.mlbstatic.com/mlb-photos/person/{row['player_id']}@3x.jpg"
+                p_id = row.get('player_id', 0)
+                if pd.notnull(p_id) and p_id > 0:
+                    img_url = f"https://img.mlbstatic.com/mlb-photos/person/{int(p_id)}@3x.jpg"
                     st.markdown(f"<div style='text-align:center;'><img src='{img_url}' style='border-radius:50%; width:100px; border:3px solid #FF5722;'></div>", unsafe_allow_html=True)
+                else:
+                    st.markdown(f"<div style='text-align:center; font-size:60px;'>⚾</div>", unsafe_allow_html=True)
                 
                 st.markdown(f"<h4 style='text-align:center; margin-bottom:0;'>{row['player_name']}</h4>", unsafe_allow_html=True)
                 st.markdown(f"<div style='text-align:center;'>**{row['suggested_side']} {row['line']} {row['prop_type']}**</div>", unsafe_allow_html=True)
@@ -150,10 +202,13 @@ with tab3:
         st.session_state['selected_bets'] = []
         
     from datetime import datetime
-    today_str = datetime.now().strftime('%Y-%m-%d')
+    today_dt = datetime.now()
+    today_str = today_dt.strftime('%Y-%m-%d')
     
     # SECCION HOY
     st.markdown("### 🔥 JUEGOS DE HOY")
+    # Filtro flexible por si hay espacios
+    games_df['game_date'] = games_df['game_date'].str.strip()
     today_games = games_df[games_df['game_date'] == today_str]
     if today_games.empty:
         st.write("No hay juegos programados para hoy.")
