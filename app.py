@@ -41,14 +41,18 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Helper para añadir/quitar apuestas (CALLBACK)
+# Helper para añadir/quitar apuestas (CALLBACK MAS ROBUSTO)
 def toggle_bet(desc, prob):
-    current_bets = st.session_state.get('selected_bets', [])
+    if 'selected_bets' not in st.session_state:
+        st.session_state['selected_bets'] = []
+    
+    current_bets = list(st.session_state['selected_bets'])
     exists = any(b['desc'] == desc for b in current_bets)
+    
     if exists:
         st.session_state['selected_bets'] = [b for b in current_bets if b['desc'] != desc]
     else:
-        st.session_state['selected_bets'].append({"desc": desc, "prob": prob})
+        st.session_state['selected_bets'] = current_bets + [{"desc": desc, "prob": prob}]
 
 # Helper para calcular cuota combinada
 def calc_parlay_odds(probs):
@@ -177,17 +181,19 @@ with tab1:
                     st.markdown("<h1 style='text-align:center;'>🏟️</h1>", unsafe_allow_html=True)
             
             with col_info:
-                st.markdown(f"**{bet['name']}**")
-                st.markdown(f"<span style='color:#FF5722; font-weight:bold; font-size:18px;'>{bet['play']}</span>", unsafe_allow_html=True)
-                st.caption(f"💡 {bet['insight']}")
-                st.markdown(f"<span style='color:#4CAF50; font-size:12px;'>Confianza: {bet['conf']:.1f}% | Momio: {bet['odds']}</span>", unsafe_allow_html=True)
+                st.markdown(f"<div style='font-size:20px; font-weight:bold; color:white;'>{bet['name']}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='font-size:24px; font-weight:bold; color:#FF5722;'>{bet['play']}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='background:#1A1C24; padding:5px; border-left:3px solid #4CAF50; font-size:12px; margin:5px 0;'>💡 {bet['insight']}</div>", unsafe_allow_html=True)
             
             with col_action:
+                # PROBABILIDAD GIGANTE
+                st.markdown(f"<div style='text-align:center; line-height:1;'><span style='font-size:32px; font-weight:bold; color:#4CAF50;'>{bet['conf']:.0f}%</span><br><span style='font-size:10px; opacity:0.6;'>PROB</span></div>", unsafe_allow_html=True)
+                
                 bet_desc = f"{bet['name']}: {bet['play']}"
                 is_in = any(b['desc'] == bet_desc for b in st.session_state['selected_bets'])
-                label = "✅" if is_in else "➕"
+                label = "✅ EN TICKET" if is_in else "➕ AÑADIR"
                 
-                if st.button(label, key=f"top10_{i}_{bet['name']}", use_container_width=True):
+                if st.button(label, key=f"top10_v2_{i}_{bet['name']}", use_container_width=True):
                     toggle_bet(bet_desc, bet['conf'])
                     st.rerun()
 
