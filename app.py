@@ -9,73 +9,34 @@ init_db()
 
 st.set_page_config(page_title="A chingarnos al casino x Elven", page_icon="🤑", layout="wide")
 
-# UI/UX PRO MAX DESIGN SYSTEM
+# UI/UX PRO MAX DESIGN SYSTEM (INVISIBLE)
 st.markdown("""
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     <style>
-    /* Global Styles */
-    html, body, [class*="st-"] {
-        font-family: 'DM Sans', sans-serif;
-    }
-    h1, h2, h3, h4 {
-        font-family: 'Space Grotesk', sans-serif;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-    
-    /* Background & Glassmorphism */
-    .stApp {
-        background: radial-gradient(circle at top right, #1e1e2f, #0d0d0d);
-    }
-    
+    html, body, [class*="st-"] { font-family: 'DM Sans', sans-serif; }
+    h1, h2, h3, h4 { font-family: 'Space Grotesk', sans-serif; text-transform: uppercase; letter-spacing: 1px; }
+    .stApp { background: radial-gradient(circle at top right, #1e1e2f, #0d0d0d); }
     [data-testid="stExpander"], [data-testid="stMetric"], .st-emotion-cache-16ids9n {
         background: rgba(255, 255, 255, 0.03) !important;
         backdrop-filter: blur(10px) !important;
         border: 1px solid rgba(255, 255, 255, 0.1) !important;
         border-radius: 15px !important;
-        transition: all 0.3s ease;
     }
-    
-    [data-testid="stExpander"]:hover {
-        border-color: #FF5722 !important;
-        box-shadow: 0 0 15px rgba(255, 87, 34, 0.2);
-    }
-
-    /* Buttons & Metrics */
     .stButton>button {
         background: linear-gradient(90deg, #FF5722, #FF9800) !important;
-        border: none !important;
-        color: white !important;
-        font-weight: bold !important;
-        border-radius: 8px !important;
-        text-transform: uppercase;
-        letter-spacing: 1px;
+        border: none !important; color: white !important; font-weight: bold !important;
+        border-radius: 8px !important; text-transform: uppercase;
     }
-    
-    [data-testid="stMetricValue"] {
-        color: #FF5722 !important;
-        font-weight: 700 !important;
-    }
-
-    /* Floating Footer Pro Max */
     @media (max-width: 768px) {
         .floating-footer {
-            position: fixed;
-            bottom: 20px;
-            left: 5%;
-            width: 90%;
-            background: rgba(30, 30, 30, 0.9) !important;
+            position: fixed; bottom: 20px; left: 5%; width: 90%;
+            background: rgba(30, 30, 30, 0.95) !important;
             backdrop-filter: blur(15px) !important;
-            padding: 12px 20px;
-            border: 1px solid #FF5722;
-            border-radius: 50px;
-            z-index: 1000;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            padding: 12px 20px; border: 1px solid #FF5722;
+            border-radius: 50px; z-index: 1000;
+            display: flex; justify-content: space-between; align-items: center;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
-        .main { padding-bottom: 120px !important; }
     }
     </style>
 """, unsafe_allow_html=True)
@@ -97,16 +58,16 @@ def calc_parlay_odds(probs):
         
     return int(odds)
 
-# UI PRINCIPAL (LOGO ELVEN)
-col_logo, col_title = st.columns([1, 4])
+# UI PRINCIPAL
+st.markdown("<br>", unsafe_allow_html=True)
+col_logo, col_title = st.columns([1, 3])
 with col_logo:
     try:
-        st.image("elven_logo.jpg", use_container_width=True)
-    except:
-        pass
+        st.image("elven_logo.jpg", width=150)
+    except: pass
 with col_title:
-    st.title("🤑 A chingarnos al casino x Elven")
-    st.markdown("Sistema avanzado con **Armador de Parlays**, **Player Props** y **Calculadora de Ganancias**.")
+    st.title("🤑 A CHINGARNOS AL CASINO")
+    st.subheader("BY ELVEN MX | PRO MAX EDITION")
 
 st.sidebar.header("⚙️ Opciones")
 if st.sidebar.button("🔄 Actualizar Datos"):
