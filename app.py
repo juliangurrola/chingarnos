@@ -107,11 +107,11 @@ tab1, tab2, tab3, tab4 = st.tabs(["🎯 Player Props", "🤑 Parlays Sugeridos",
 
 # TAB 1: PLAYER PROPS
 with tab1:
-    st.subheader("🔥 TOP 10 RECOMENDACIONES DEL DÍA")
-    best_props = props_df.sort_values(by='confidence_score', ascending=False).head(10)
-    
     if 'selected_bets' not in st.session_state:
         st.session_state['selected_bets'] = []
+        
+    st.subheader("🔥 TOP 10 RECOMENDACIONES DEL DÍA")
+    best_props = props_df.sort_values(by='confidence_score', ascending=False).head(10)
     
     cols = st.columns(2) 
     for i, (_, row) in enumerate(best_props.iterrows()):
@@ -141,14 +141,19 @@ with tab1:
                 st.markdown(f"<div style='text-align:center; font-size:12px; opacity:0.8;'>{row['prop_type']}</div>", unsafe_allow_html=True)
                 st.markdown(f"<div style='text-align:center; color:#FF5722; font-weight:bold;'>{row['american_odds']}</div>", unsafe_allow_html=True)
                 
-                # BOTON GRANDE PARA AÑADIR
+                # BOTON DE ACCION (Añadir/Quitar)
                 desc_p = f"{row['player_name']}: {row['suggested_side']} {row['line']} {row['prop_type']}"
-                if st.button(f"➕ AÑADIR", key=f"bp_{row['prop_id']}", use_container_width=True):
-                    if not any(b['desc'] == desc_p for b in st.session_state['selected_bets']):
+                is_selected = any(b['desc'] == desc_p for b in st.session_state['selected_bets'])
+                
+                btn_label = "✅ EN TICKET" if is_selected else "➕ AÑADIR"
+                if st.button(btn_label, key=f"bp_{row['prop_id']}", use_container_width=True):
+                    if not is_selected:
                         st.session_state['selected_bets'].append({"desc": desc_p, "prob": row['confidence_score']})
-                        st.toast(f"✅ {row['player_name']} añadido")
+                        st.toast(f"➕ {row['player_name']} añadido")
                     else:
-                        st.warning("Ya está en el ticket")
+                        st.session_state['selected_bets'] = [b for b in st.session_state['selected_bets'] if b['desc'] != desc_p]
+                        st.toast(f"🗑️ {row['player_name']} quitado")
+                    st.rerun()
                 
                 st.markdown(f"<div style='text-align:center; font-size:22px; font-weight:bold; color:#4CAF50;'>{row['confidence_score']:.1f}%</div>", unsafe_allow_html=True)
 
