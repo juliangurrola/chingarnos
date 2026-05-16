@@ -152,7 +152,8 @@ top_10_unified = []
 conn = get_connection()
 try:
     games_df = pd.read_sql_query('''
-        SELECT d.game_id, d.game_date, d.home_team, d.away_team, d.venue_name, d.weather_condition, d.wind_speed, d.wind_direction,
+        SELECT d.game_id, d.game_date, d.home_team, d.home_team_id, d.away_team, d.away_team_id, 
+               d.venue_name, d.weather_condition, d.temperature, d.wind_speed, d.wind_direction,
                d.home_pitcher_name, d.away_pitcher_name, d.home_pitcher_id, d.away_pitcher_id,
                p.home_win_prob, p.away_win_prob, 
                p.expected_total_runs, p.suggested_bet, p.confidence_score, p.key_insight

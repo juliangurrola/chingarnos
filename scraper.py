@@ -97,18 +97,18 @@ def fetch_daily_schedule():
             a_p_name = a_pitcher.get('fullName', 'Unknown')
             a_p_id = a_pitcher.get('id', 0)
 
-            # OBTENER LINEUP REAL (ROSTERS)
-            try:
-                roster_url = f"https://statsapi.mlb.com/api/v1/teams/{h_team_id}/roster"
-                r_data = requests.get(roster_url).json()
-                for p in r_data.get('roster', [])[:8]:
-                    p_name = p['person']['fullName']
-                    p_id = p['person']['id']
-                    # SOLO INSERTAR SI EL ID ES REAL Y ES UN BATEADOR
-                    if p['position']['type'] != 'Pitcher' and p_id > 0:
-                        cursor.execute('INSERT OR REPLACE INTO player_props (game_id, player_name, player_id, prop_type) VALUES (?, ?, ?, ?)',
-                                       (g_id, p_name, p_id, "Bateador"))
-            except: pass
+            # OBTENER ROSTERS REALES (HOME Y AWAY)
+            for t_id in [h_team_id, a_team_id]:
+                try:
+                    r_url = f"https://statsapi.mlb.com/api/v1/teams/{t_id}/roster"
+                    r_data = requests.get(r_url).json()
+                    for p in r_data.get('roster', []):
+                        p_name = p['person']['fullName']
+                        p_id = p['person']['id']
+                        if p['position']['type'] != 'Pitcher' and p_id > 0:
+                            cursor.execute('INSERT OR REPLACE INTO player_props (game_id, player_name, player_id, prop_type) VALUES (?, ?, ?, ?)',
+                                           (g_id, p_name, p_id, "Bateador"))
+                except: pass
             
             cursor.execute('''
                 INSERT OR REPLACE INTO daily_schedule 
