@@ -125,39 +125,34 @@ def generate_predictions():
                           VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', 
                        (row['game_id'], row['home_team'], 0, "Team Total Runs", expected_runs/2 + 0.5, "OVER", prob_to_american_odds(58.0), 58.0))
                 
-        # PLAYER PROPS (PITCHERS: STRIKEOUTS, HITS PERMITIDOS, CARRERAS LIMPIAS)
+        # PLAYER PROPS (PITCHERS: STRIKEOUTS, HITS, ER)
         pitchers = [(row['home_pitcher_name'], row['home_pitcher_id'], home_win_prob), 
                     (row['away_pitcher_name'], row['away_pitcher_id'], away_win_prob)]
         for pitcher, p_id, win_prob in pitchers:
             if pitcher != "Unknown":
-                # Strikeouts
-                k_line = round(random.uniform(4.5, 8.5) * 2) / 2
-                is_over = win_prob > 50
-                side_k = "OVER" if is_over else "UNDER"
-                prop_conf = 55.0 + random.uniform(0, 15)
-                cursor.execute('''
-                    INSERT INTO player_props 
-                    (game_id, player_name, player_id, prop_type, line, suggested_side, american_odds, confidence_score)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (row['game_id'], pitcher, p_id, "Strikeouts", k_line, side_k, prob_to_american_odds(prop_conf), prop_conf))
-                if prop_conf > 60:
-                    all_bets.append({"desc": f"{pitcher} {side_k} {k_line} Strikeouts", "prob": prop_conf})
+                # Ponches (K)
+                k_line = round(random.uniform(3.5, 7.5) * 2) / 2
+                cursor.execute('''INSERT INTO player_props (game_id, player_name, player_id, prop_type, line, suggested_side, american_odds, confidence_score)
+                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', (row['game_id'], pitcher, p_id, "Ponches (K)", k_line, "OVER" if win_prob > 50 else "UNDER", prob_to_american_odds(58.0), 58.0))
                 
                 # Hits Permitidos
-                hits_line = round(random.uniform(4.5, 6.5) * 2) / 2
-                cursor.execute('''
-                    INSERT INTO player_props 
-                    (game_id, player_name, player_id, prop_type, line, suggested_side, american_odds, confidence_score)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (row['game_id'], pitcher, p_id, "Hits Permitidos", hits_line, "UNDER" if is_over else "OVER", prob_to_american_odds(53.0), 53.0))
-                
-                # Carreras Limpias (Earned Runs)
-                er_line = 2.5
-                cursor.execute('''
-                    INSERT INTO player_props 
-                    (game_id, player_name, player_id, prop_type, line, suggested_side, american_odds, confidence_score)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (row['game_id'], pitcher, p_id, "Carreras Limpias", er_line, "UNDER" if is_over else "OVER", prob_to_american_odds(54.0), 54.0))
+                cursor.execute('''INSERT INTO player_props (game_id, player_name, player_id, prop_type, line, suggested_side, american_odds, confidence_score)
+                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', (row['game_id'], pitcher, p_id, "Hits Permitidos", 5.5, "UNDER" if win_prob > 50 else "OVER", prob_to_american_odds(54.0), 54.0))
+
+        # PLAYER PROPS (BATEADORES: HITS, BASES, CARRERAS)
+        teams = [(row['home_team'], h_ops), (row['away_team'], a_ops)]
+        for team_name, ops in teams:
+            # Simulamos un bateador clave por equipo
+            p_name = f"Bateador Clave {team_name}"
+            # Hits
+            cursor.execute('''INSERT INTO player_props (game_id, player_name, player_id, prop_type, line, suggested_side, american_odds, confidence_score)
+                              VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', (row['game_id'], p_name, 0, "Hits Totales", 1.5 if ops > 0.8 else 0.5, "OVER", prob_to_american_odds(52.0), 52.0))
+            # Bases Totales
+            cursor.execute('''INSERT INTO player_props (game_id, player_name, player_id, prop_type, line, suggested_side, american_odds, confidence_score)
+                              VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', (row['game_id'], p_name, 0, "Bases Totales", 1.5, "OVER" if ops > 0.75 else "UNDER", prob_to_american_odds(55.0), 55.0))
+            # Carreras Anotadas
+            cursor.execute('''INSERT INTO player_props (game_id, player_name, player_id, prop_type, line, suggested_side, american_odds, confidence_score)
+                              VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', (row['game_id'], p_name, 0, "Carreras Anotadas", 0.5, "OVER" if ops > 0.82 else "UNDER", prob_to_american_odds(53.0), 53.0))
 
         # PLAYER PROPS (BATEADORES)
         # Algunos IDs de bateadores estrella (Ohtani: 660271, Judge: 592450, Trout: 545361, Soto: 665742)

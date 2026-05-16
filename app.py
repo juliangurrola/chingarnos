@@ -9,34 +9,19 @@ init_db()
 
 st.set_page_config(page_title="A chingarnos al casino x Elven", page_icon="🤑", layout="wide")
 
-# UI/UX PRO MAX DESIGN SYSTEM (INVISIBLE)
+# DISEÑO MINIMALISTA
 st.markdown("""
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     <style>
-    html, body, [class*="st-"] { font-family: 'DM Sans', sans-serif; }
-    h1, h2, h3, h4 { font-family: 'Space Grotesk', sans-serif; text-transform: uppercase; letter-spacing: 1px; }
-    .stApp { background: radial-gradient(circle at top right, #1e1e2f, #0d0d0d); }
-    [data-testid="stExpander"], [data-testid="stMetric"], .st-emotion-cache-16ids9n {
-        background: rgba(255, 255, 255, 0.03) !important;
-        backdrop-filter: blur(10px) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 15px !important;
-    }
-    .stButton>button {
-        background: linear-gradient(90deg, #FF5722, #FF9800) !important;
-        border: none !important; color: white !important; font-weight: bold !important;
-        border-radius: 8px !important; text-transform: uppercase;
-    }
+    .stApp { background-color: #0E1117; }
+    [data-testid="stExpander"], [data-testid="stMetric"] { background-color: #1A1C24 !important; border: 1px solid #333 !important; }
+    .stButton>button { background-color: #FF5722 !important; border: none !important; color: white !important; }
     @media (max-width: 768px) {
         .floating-footer {
-            position: fixed; bottom: 20px; left: 5%; width: 90%;
-            background: rgba(30, 30, 30, 0.95) !important;
-            backdrop-filter: blur(15px) !important;
-            padding: 12px 20px; border: 1px solid #FF5722;
-            border-radius: 50px; z-index: 1000;
-            display: flex; justify-content: space-between; align-items: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            position: fixed; bottom: 0; left: 0; width: 100%;
+            background-color: #1A1C24; padding: 15px; border-top: 2px solid #FF5722;
+            z-index: 1000; display: flex; justify-content: space-between; align-items: center;
         }
+        .main { padding-bottom: 100px !important; }
     }
     </style>
 """, unsafe_allow_html=True)
@@ -66,8 +51,8 @@ with col_logo:
         st.image("elven_logo.jpg", width=150)
     except: pass
 with col_title:
-    st.title("🤑 A CHINGARNOS AL CASINO")
-    st.subheader("BY ELVEN MX | PRO MAX EDITION")
+    st.title("🤑 MLB Predictor x Elven MX")
+    st.markdown("Análisis inteligente de apuestas.")
 
 st.sidebar.header("⚙️ Opciones")
 if st.sidebar.button("🔄 Actualizar Datos"):
@@ -110,16 +95,15 @@ tab1, tab2, tab3, tab4 = st.tabs(["🎯 Player Props", "🤑 Parlays Sugeridos",
 
 # TAB 1: PLAYER PROPS
 with tab1:
-    st.subheader("🔥 Mejores Apuestas por Jugador")
-    cols = st.columns(3)
-    # Mostramos los mejores 15 props para no saturar
-    best_props = props_df.sort_values(by='confidence_score', ascending=False).head(15)
+    st.subheader("🔥 TOP 10 RECOMENDACIONES DEL DÍA")
+    best_props = props_df.sort_values(by='confidence_score', ascending=False).head(10)
     
     if 'selected_bets' not in st.session_state:
         st.session_state['selected_bets'] = []
-
+    
+    cols = st.columns(2) 
     for i, (_, row) in enumerate(best_props.iterrows()):
-        with cols[i % 3]:
+        with cols[i % 2]:
             with st.container(border=True):
                 # FECHA DE LA APUESTA
                 from datetime import datetime
@@ -136,9 +120,9 @@ with tab1:
 
                 if p_id_int > 0:
                     img_url = f"https://img.mlbstatic.com/mlb-photos/person/{p_id_int}@3x.jpg"
-                    st.markdown(f"<div style='text-align:center; margin-top:5px;'><img src='{img_url}' style='border-radius:50%; width:80px; height:80px; border:2px solid {badge_color}; object-fit: cover;'></div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='text-align:center; margin-top:5px;'><img src='https://img.mlbstatic.com/mlb-photos/person/{p_id_int}@3x.jpg' style='border-radius:10px; width:100%; border:1px solid #30363D;'></div>", unsafe_allow_html=True)
                 else:
-                    st.markdown(f"<div style='text-align:center; font-size:50px; margin-top:5px;'>⚾</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='text-align:center; font-size:40px; margin-top:5px;'>⚾</div>", unsafe_allow_html=True)
                 
                 st.markdown(f"<h4 style='text-align:center; margin-bottom:0; font-size:16px;'>{row['player_name']}</h4>", unsafe_allow_html=True)
                 st.markdown(f"<div style='text-align:center; font-size:14px;'>**{row['suggested_side']} {row['line']}**</div>", unsafe_allow_html=True)
@@ -157,10 +141,21 @@ with tab1:
 with tab2:
     st.subheader("🤖 Parlays Sugeridos por Inteligencia Artificial")
     for _, row in parlays_df.iterrows():
-        st.success(f"### {row['parlay_name']}\n\n"
-                   f"**Selecciones:**\n{row['legs_description']}\n\n"
-                   f"**Momio Americano Combinado:** {row['combined_american_odds']}\n\n"
-                   f"**Probabilidad Matemática:** {row['win_probability']:.1f}%")
+        with st.container(border=True):
+            st.success(f"### {row['parlay_name']}\n\n"
+                       f"**Selecciones:**\n{row['legs_description']}\n\n"
+                       f"**Momio:** {row['combined_american_odds']} | **Prob:** {row['win_probability']:.1f}%")
+            
+            # Boton para añadir al ticket
+            p_desc = f"IA PARLAY: {row['parlay_name']}"
+            p_prob = row['win_probability']
+            
+            if st.button(f"➕ Añadir {row['parlay_name']} al Ticket", key=f"ai_p_{row['parlay_id']}"):
+                if not any(b['desc'] == p_desc for b in st.session_state['selected_bets']):
+                    st.session_state['selected_bets'].append({"desc": p_desc, "prob": p_prob})
+                    st.toast(f"✅ {row['parlay_name']} añadido!")
+                else:
+                    st.warning("Este parlay ya está en tu ticket.")
 
 # TAB 3: ARMADOR DE PARLAYS
 with tab3:
@@ -262,16 +257,21 @@ with tab3:
                                 if {"desc": desc_p, "prob": prob_p} in st.session_state['selected_bets']: st.session_state['selected_bets'].remove({"desc": desc_p, "prob": prob_p})
                             st.markdown(f"<h3 style='color:#2196F3; margin-top:-10px;'>{prob_p:.1f}%</h3>", unsafe_allow_html=True)
 
-    # --- RECIBO DE APUESTA (AHORA EN EL AREA PRINCIPAL PARA MOVILES) ---
+    # --- RECIBO DE APUESTA (SIEMPRE VISIBLE) ---
     st.markdown("---")
     with st.container(border=True):
         st.subheader("🛒 Tu Recibo de Apuesta")
         
-        if len(st.session_state['selected_bets']) == 0:
-            st.info("Selecciona alguna apuesta arriba para armar tu ticket.")
-        else:
+        # Inicializar variables para evitar errores
+        combined_odds = "N/A"
+        display_odds = "0"
+        payout = 0.0
+        profit = 0.0
+        wa_url = "#"
+        wager = 100.0 # Valor por defecto
+        
+        if len(st.session_state['selected_bets']) > 0:
             col_rec1, col_rec2 = st.columns([2, 1])
-            
             with col_rec1:
                 st.markdown("**Selecciones:**")
                 probs = []
@@ -286,54 +286,49 @@ with tab3:
                 if combined_odds != "N/A":
                     display_odds = f"+{combined_odds}" if combined_odds > 0 else f"{combined_odds}"
                     st.metric("MOMIO PARLAY", display_odds)
-                    
-                    # Calcular ganancia
-                    if combined_odds > 0:
-                        profit = wager * (combined_odds / 100.0)
-                    else:
-                        profit = wager * (100.0 / abs(combined_odds))
-                    
+                    if combined_odds > 0: profit = wager * (combined_odds / 100.0)
+                    else: profit = wager * (100.0 / abs(combined_odds))
                     payout = wager + profit
                     st.metric("PAGO TOTAL", f"${payout:.2f}", delta=f"${profit:.2f} NETO")
                 else:
                     st.error("Error en Momio")
 
-            # BOTON WHATSAPP GRANDE (FULL WIDTH)
-            if combined_odds != "N/A":
-                msg = f"🎰 *MI PARLAY GANADOR* (A chingarnos al casino x Elven)\n\n"
-                for b in st.session_state['selected_bets']:
-                    msg += f"• {b['desc']}\n"
-                msg += f"\n*MOMIO:* {display_odds}\n"
-                msg += f"*APUESTA:* ${wager:.2f}\n"
-                msg += f"*PAGO ESTIMADO:* ${payout:.2f}\n\n"
-                msg += "¡A cobrar! ⚾💸"
-                
-                encoded_msg = urllib.parse.quote(msg)
-                wa_url = f"https://wa.me/?text={encoded_msg}"
-                
+            # Generar link de WhatsApp
+            msg = f"🎰 *MI PARLAY GANADOR* (A chingarnos al casino x Elven)\n\n"
+            for b in st.session_state['selected_bets']:
+                msg += f"• {b['desc']}\n"
+            msg += f"\n*MOMIO:* {display_odds}\n*APUESTA:* ${wager:.2f}\n*PAGO ESTIMADO:* ${payout:.2f}\n\n¡A cobrar! ⚾💸"
+            wa_url = f"https://wa.me/?text={urllib.parse.quote(msg)}"
+            
             # BARRA FLOTANTE PARA MOVILES (STICKY FOOTER)
             st.markdown(f'''
                 <div class="floating-footer">
                     <div style="color:white;">
-                        <div style="font-size:12px; opacity:0.8;">MOMIO TOTAL</div>
-                        <div style="font-size:18px; font-weight:bold; color:#FF5722;">{display_odds}</div>
+                        <div style="font-size:10px; opacity:0.8;">MOMIO</div>
+                        <div style="font-size:16px; font-weight:bold; color:#FF5722;">{display_odds}</div>
+                    </div>
+                    <div style="color:white; text-align:center;">
+                        <div style="font-size:10px; opacity:0.8;">PAGO</div>
+                        <div style="font-size:16px; font-weight:bold; color:#4CAF50;">${payout:.0f}</div>
                     </div>
                     <a href="{wa_url}" target="_blank" style="text-decoration:none;">
-                        <button style="background-color:#25D366; color:white; border:none; padding:10px 20px; border-radius:5px; font-weight:bold; cursor:pointer;">
-                            📲 ENVIAR POR WA
+                        <button style="background-color:#25D366; color:white; border:none; padding:8px 15px; border-radius:20px; font-weight:bold; font-size:12px; cursor:pointer; box-shadow: 0 4px 10px rgba(37,211,102,0.3);">
+                            📲 ENVIAR
                         </button>
                     </a>
                 </div>
             ''', unsafe_allow_html=True)
 
-            # Recibo normal (se mantiene para escritorio)
+            # Boton grande para escritorio
             st.markdown(f'''
                 <a href="{wa_url}" target="_blank" style="text-decoration:none;">
-                    <div style="width:100%; background-color:#25D366; color:white; text-align:center; padding:15px; border-radius:10px; cursor:pointer; font-weight:bold; font-size:20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <div style="width:100%; background: linear-gradient(90deg, #25D366, #128C7E); color:white; text-align:center; padding:15px; border-radius:15px; cursor:pointer; font-weight:bold; font-size:20px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
                         📲 ENVIAR TICKET POR WHATSAPP
                     </div>
                 </a>
             ''', unsafe_allow_html=True)
+        else:
+            st.info("👋 ¡Hola! Selecciona jugadas en los partidos de arriba para armar tu parlay y ver aquí tu ticket.")
 
 
 # TAB 4: JUEGOS PRINCIPALES
