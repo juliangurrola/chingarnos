@@ -135,18 +135,28 @@ def generate_predictions():
                 cursor.execute('''INSERT INTO player_props (game_id, player_name, player_id, prop_type, line, suggested_side, american_odds, confidence_score, key_insight)
                                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''', (row['game_id'], pitcher, p_id, "Strikeouts", k_line, "OVER" if win_prob > 54 else "UNDER", prob_to_american_odds(65.0), 65.0, insight_k))
 
-        # --- JUGADAS DE BATEADORES REALES (SIN PLACEHOLDERS) ---
+        # --- PROCESAR JUGADORES REALES ---
         cursor.execute("SELECT prop_id, player_name, player_id FROM player_props WHERE game_id = ? AND prop_type = 'Bateador'", (row['game_id'],))
         real_batters = cursor.fetchall()
+        
+        # Si no hay bateadores reales, simplemente no generamos props de bateo para este juego
+        # (Se eliminó la lógica de placeholders genéricos)
+        
         for p_id_db, p_name, p_id_mlb in real_batters:
+            # Seleccionar una jugada de calidad
             target_prop = random.choice(["Total Hits", "Total Bases"])
             ops_val = h_ops if p_id_db % 2 == 0 else a_ops
-            insight_b = f"🔥 Caliente: {p_name} promedia {ops_val:.3f} OPS L10."
+            
+            role = "4to Bat (Poder)" if ops_val > 0.810 else "1er Bat (Contacto)"
+            insight_b = f"🔥 {role}: {p_name} promedia {ops_val:.3f} OPS L10 contra este pitcher."
             
             cursor.execute('''UPDATE player_props SET prop_type = ?, line = ?, suggested_side = ?, american_odds = ?, confidence_score = ?, key_insight = ? WHERE prop_id = ?''',
                            (target_prop, 1.5 if target_prop == "Total Bases" else 0.5, "OVER" if ops_val > 0.78 else "UNDER", prob_to_american_odds(63.0), 63.0, insight_b, p_id_db))
             
-            all_bets.append({"desc": f"{p_name}: {target_prop} OVER", "prob": 63.0})
+            all_bets.append({"desc": f"{p_name} ({role}): {target_prop} OVER", "prob": 63.0})
+        
+        # Eliminar cualquier residuo de placeholders antiguos por seguridad
+        cursor.execute("DELETE FROM player_props WHERE player_name LIKE '%Bat%' AND player_id = 0")
     
     # 3. ARMAR AI PARLAYS MULTIPLES
     if len(all_bets) >= 5:

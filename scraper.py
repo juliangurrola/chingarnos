@@ -55,41 +55,39 @@ def fetch_daily_schedule():
         total_games += len(games)
     
         for game in games:
-            game_id = game['gamePk']
-            status = game['status']['detailedState']
+        for g in games:
+            g_id = g['gamePk']
+            h_team = g.get('teams', {}).get('home', {}).get('team', {}).get('name', 'N/A')
+            h_team_id = g.get('teams', {}).get('home', {}).get('team', {}).get('id', 0)
+            a_team = g.get('teams', {}).get('away', {}).get('team', {}).get('name', 'N/A')
+            a_team_id = g.get('teams', {}).get('away', {}).get('team', {}).get('id', 0)
             
-            home_team = game['teams']['home']['team']['name']
-            away_team = game['teams']['away']['team']['name']
+            venue = g.get('venue', {}).get('name', 'N/A')
+            status = g.get('status', {}).get('detailedState', 'N/A')
             
-            venue_name = game.get('venue', {}).get('name', 'Unknown')
-            
-            weather = game.get('weather', {})
-            weather_cond = weather.get('condition', 'Unknown')
+            # Datos del clima
+            weather = g.get('weather', {})
+            cond = weather.get('condition', 'Unknown')
             temp = weather.get('temp', 0)
-            wind = weather.get('wind', '0 mph')
+            w_speed = weather.get('wind', '0 mph')
+            w_dir = "N/A"
+            if ' ' in w_speed:
+                parts = w_speed.split(' ')
+                w_speed = parts[0]
+                w_dir = parts[2] if len(parts) > 2 else "Unknown"
             
-            # Parse wind (e.g. "10 mph, Out To CF")
-            wind_speed = '0'
-            wind_direction = 'Unknown'
-            if wind and wind != '0 mph':
-                parts = wind.split(', ')
-                if len(parts) > 0:
-                    wind_speed = parts[0].replace(' mph', '')
-                if len(parts) > 1:
-                    wind_direction = parts[1]
-                    
             # Pitchers
-            home_pitcher = game['teams']['home'].get('probablePitcher', {})
-            home_pitcher_id = home_pitcher.get('id', 0)
-            home_pitcher_name = home_pitcher.get('fullName', 'Unknown')
+            h_pitcher = g.get('teams', {}).get('home', {}).get('probablePitcher', {})
+            h_pitcher_name = h_pitcher.get('fullName', 'Unknown')
+            h_pitcher_id = h_pitcher.get('id', 0)
             
-            away_pitcher = game['teams']['away'].get('probablePitcher', {})
-            away_pitcher_id = away_pitcher.get('id', 0)
-            away_pitcher_name = away_pitcher.get('fullName', 'Unknown')
+            a_pitcher = g.get('teams', {}).get('away', {}).get('probablePitcher', {})
+            a_pitcher_name = a_pitcher.get('fullName', 'Unknown')
+            a_pitcher_id = a_pitcher.get('id', 0)
 
             # OBTENER LINEUP/BATEADORES (Nuevos datos)
             try:
-                roster_url = f"https://statsapi.mlb.com/api/v1/teams/{home_id}/roster"
+                roster_url = f"https://statsapi.mlb.com/api/v1/teams/{h_team_id}/roster"
                 r_data = requests.get(roster_url).json()
                 # Tomamos los primeros 5 bateadores destacados
                 for p in r_data.get('roster', [])[:5]:
@@ -97,7 +95,7 @@ def fetch_daily_schedule():
                     p_id = p['person']['id']
                     if p['position']['type'] != 'Pitcher':
                         cursor.execute('INSERT OR REPLACE INTO player_props (game_id, player_name, player_id, prop_type) VALUES (?, ?, ?, ?)',
-                                       (game_id, p_name, p_id, "Bateador"))
+                                       (g_id, p_name, p_id, "Bateador"))
             except: pass
             
             cursor.execute('''

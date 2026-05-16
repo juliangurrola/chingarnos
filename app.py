@@ -171,14 +171,19 @@ all_bets_list = []
 # 1. Añadir jugadas de equipos (Moneyline / Totales)
 if not games_df.empty:
     for _, row in games_df.iterrows():
+        play_name = str(row.get('suggested_bet', 'N/A'))
+        if "ML" in play_name:
+            play_name = play_name.replace("ML", "Gana el Partido")
+        
         all_bets_list.append({
             "type": "EQUIPO",
             "name": str(row.get('home_team', 'Partido')),
-            "play": str(row.get('suggested_bet', 'N/A')),
+            "play": play_name,
             "conf": float(row.get('confidence_score', 0)),
             "odds": "VAR",
             "insight": str(row.get('key_insight', 'Análisis disponible.')),
-            "p_id": 0
+            "p_id": 0,
+            "t_id": row.get('home_team_id', 0)
         })
 
 # 2. Añadir jugadas de jugadores
@@ -191,7 +196,8 @@ if not props_df.empty:
             "conf": float(row.get('confidence_score', 0)),
             "odds": str(row.get('american_odds', 'VAR')),
             "insight": str(row.get('key_insight', 'Proyección estadística.')),
-            "p_id": row.get('player_id', 0)
+            "p_id": row.get('player_id', 0),
+            "t_id": 0
         })
 
 # Ordenar y tomar los mejores 10 (con seguridad)
@@ -220,12 +226,17 @@ with tab1:
                     try:
                         p_id = int(float(bet['p_id']))
                         if p_id > 0:
-                            st.image(f"https://img.mlbstatic.com/mlb-photos/person/{p_id}@3x.jpg", width=70)
+                            st.image(f"https://img.mlbstatic.com/mlb-photos/person/{p_id}@3x.jpg", width=80)
                         else: st.markdown("<h1 style='text-align:center;'>⚾</h1>", unsafe_allow_html=True)
                     except:
                         st.markdown("<h1 style='text-align:center;'>⚾</h1>", unsafe_allow_html=True)
                 else:
-                    st.markdown("<h1 style='text-align:center;'>🏟️</h1>", unsafe_allow_html=True)
+                    # LOGO DE EQUIPO OFICIAL
+                    t_id = bet.get('t_id', 0)
+                    if t_id > 0:
+                        st.image(f"https://www.mlbstatic.com/team-logos/{t_id}.svg", width=80)
+                    else:
+                        st.markdown("<h1 style='text-align:center;'>🏟️</h1>", unsafe_allow_html=True)
             
             with col_info:
                 st.markdown(f"<div style='font-size:20px; font-weight:bold; color:white;'>{bet['name']}</div>", unsafe_allow_html=True)
