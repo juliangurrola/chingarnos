@@ -52,7 +52,7 @@ try:
     games_df = pd.read_sql_query('''
         SELECT d.game_id, d.home_team, d.away_team, d.venue_name, d.weather_condition, d.wind_speed, d.wind_direction,
                d.home_pitcher_name, d.away_pitcher_name, p.home_win_prob, p.away_win_prob, 
-               p.expected_total_runs, p.suggested_bet, p.confidence_score
+               p.expected_total_runs, p.suggested_bet, p.confidence_score, p.key_insight
         FROM daily_schedule d
         JOIN predictions p ON d.game_id = p.game_id
     ''', conn)
@@ -78,12 +78,36 @@ with tab1:
     cols = st.columns(3)
     # Mostramos los mejores 15 props para no saturar
     best_props = props_df.sort_values(by='confidence_score', ascending=False).head(15)
+    
+    if 'selected_bets' not in st.session_state:
+        st.session_state['selected_bets'] = []
+
     for i, (_, row) in enumerate(best_props.iterrows()):
         with cols[i % 3]:
             with st.container(border=True):
-                st.markdown(f"<h4 style='margin-bottom:0;'>{row['player_name']}</h4>", unsafe_allow_html=True)
-                st.markdown(f"**{row['suggested_side']} {row['line']} {row['prop_type']}**")
-                st.markdown(f"Momio: **{row['american_odds']}**")
+                # FOTO DEL JUGADOR
+                if row['player_id'] > 0:
+                    img_url = f"https://img.mlbstatic.com/mlb-photos/person/{row['player_id']}@3x.jpg"
+                    st.markdown(f"<div style='text-align:center;'><img src='{img_url}' style='border-radius:50%; width:100px; border:3px solid #FF5722;'></div>", unsafe_allow_html=True)
+                
+                st.markdown(f"<h4 style='text-align:center; margin-bottom:0;'>{row['player_name']}</h4>", unsafe_allow_html=True)
+                st.markdown(f"<div style='text-align:center;'>**{row['suggested_side']} {row['line']} {row['prop_type']}**</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='text-align:center;'>Momio: **{row['american_odds']}**</div>", unsafe_allow_html=True)
+                
+                # Checkbox para seleccionar
+                desc_p = f"{row['player_name']}: {row['suggested_side']} {row['line']} {row['prop_type']}"
+                prob_p = row['confidence_score']
+                
+                # Sincronizar estado
+                is_selected = any(b['desc'] == desc_p for b in st.session_state['selected_bets'])
+                
+                if st.checkbox("Seleccionar para Parlay", value=is_selected, key=f"best_p_{row['prop_id']}"):
+                    if not any(b['desc'] == desc_p for b in st.session_state['selected_bets']):
+                        st.session_state['selected_bets'].append({"desc": desc_p, "prob": prob_p})
+                else:
+                    if any(b['desc'] == desc_p for b in st.session_state['selected_bets']):
+                        st.session_state['selected_bets'] = [b for b in st.session_state['selected_bets'] if b['desc'] != desc_p]
+                
                 st.markdown(f"<h2 style='color:#FF5722; text-align:center; margin-top:0;'>{row['confidence_score']:.1f}%</h2>", unsafe_allow_html=True)
 
 # TAB 2: PARLAYS DE LA IA
@@ -145,55 +169,63 @@ with tab3:
                             if {"desc": desc_p, "prob": prob_p} in st.session_state['selected_bets']: st.session_state['selected_bets'].remove({"desc": desc_p, "prob": prob_p})
                         st.markdown(f"<h3 style='color:#2196F3; margin-top:-10px;'>{prob_p:.1f}%</h3>", unsafe_allow_html=True)
 
-    # Sidebar recipt
-    st.sidebar.markdown("### 🛒 Tu Recibo de Apuesta")
-    wager = st.sidebar.number_input("Monto a apostar ($):", min_value=10.0, value=100.0, step=10.0)
-    
-    if len(st.session_state['selected_bets']) == 0:
-        st.sidebar.write("No has seleccionado ninguna apuesta.")
-    else:
-        probs = []
-        for b in st.session_state['selected_bets']:
-            st.sidebar.write(f"- {b['desc']}")
-            probs.append(b['prob'])
-            
-        combined_odds = calc_parlay_odds(probs)
+    # --- RECIBO DE APUESTA (AHORA EN EL AREA PRINCIPAL PARA MOVILES) ---
+    st.markdown("---")
+    with st.container(border=True):
+        st.subheader("🛒 Tu Recibo de Apuesta")
         
-        if combined_odds == "N/A":
-            st.sidebar.error("Error calculando momio.")
+        if len(st.session_state['selected_bets']) == 0:
+            st.info("Selecciona alguna apuesta arriba para armar tu ticket.")
         else:
-            display_odds = f"+{combined_odds}" if combined_odds > 0 else f"{combined_odds}"
-            st.sidebar.success(f"**MOMIO DEL PARLAY:** {display_odds}")
+            col_rec1, col_rec2 = st.columns([2, 1])
             
-            # Calcular ganancia
-            if combined_odds > 0:
-                profit = wager * (combined_odds / 100.0)
-            else:
-                profit = wager * (100.0 / abs(combined_odds))
+            with col_rec1:
+                st.markdown("**Selecciones:**")
+                probs = []
+                for b in st.session_state['selected_bets']:
+                    st.write(f"✅ {b['desc']}")
+                    probs.append(b['prob'])
                 
-            payout = wager + profit
-            st.sidebar.markdown(f"### 💰 Posible Ganancia")
-            st.sidebar.metric(label="Pago Total", value=f"${payout:.2f}", delta=f"+${profit:.2f} ganancia")
+                wager = st.number_input("Monto a apostar ($):", min_value=10.0, value=100.0, step=10.0, key="wager_main")
             
-            # BOTON WHATSAPP
-            msg = f"🎰 *MI PARLAY GANADOR* (A chingarnos al casino x Elven)\n\n"
-            for b in st.session_state['selected_bets']:
-                msg += f"• {b['desc']}\n"
-            msg += f"\n*MOMIO:* {display_odds}\n"
-            msg += f"*APUESTA:* ${wager:.2f}\n"
-            msg += f"*PAGO ESTIMADO:* ${payout:.2f}\n\n"
-            msg += "¡A cobrar! ⚾💸"
-            
-            encoded_msg = urllib.parse.quote(msg)
-            wa_url = f"https://wa.me/?text={encoded_msg}"
-            
-            st.sidebar.markdown(f'''
-                <a href="{wa_url}" target="_blank">
-                    <button style="width:100%; background-color:#25D366; color:white; border:none; padding:10px; border-radius:5px; cursor:pointer; font-weight:bold;">
-                        📲 Enviar por WhatsApp
-                    </button>
-                </a>
-            ''', unsafe_allow_html=True)
+            with col_rec2:
+                combined_odds = calc_parlay_odds(probs)
+                if combined_odds != "N/A":
+                    display_odds = f"+{combined_odds}" if combined_odds > 0 else f"{combined_odds}"
+                    st.metric("MOMIO PARLAY", display_odds)
+                    
+                    # Calcular ganancia
+                    if combined_odds > 0:
+                        profit = wager * (combined_odds / 100.0)
+                    else:
+                        profit = wager * (100.0 / abs(combined_odds))
+                    
+                    payout = wager + profit
+                    st.metric("PAGO TOTAL", f"${payout:.2f}", delta=f"${profit:.2f} NETO")
+                else:
+                    st.error("Error en Momio")
+
+            # BOTON WHATSAPP GRANDE (FULL WIDTH)
+            if combined_odds != "N/A":
+                msg = f"🎰 *MI PARLAY GANADOR* (A chingarnos al casino x Elven)\n\n"
+                for b in st.session_state['selected_bets']:
+                    msg += f"• {b['desc']}\n"
+                msg += f"\n*MOMIO:* {display_odds}\n"
+                msg += f"*APUESTA:* ${wager:.2f}\n"
+                msg += f"*PAGO ESTIMADO:* ${payout:.2f}\n\n"
+                msg += "¡A cobrar! ⚾💸"
+                
+                encoded_msg = urllib.parse.quote(msg)
+                wa_url = f"https://wa.me/?text={encoded_msg}"
+                
+                st.markdown(f'''
+                    <a href="{wa_url}" target="_blank" style="text-decoration:none;">
+                        <div style="width:100%; background-color:#25D366; color:white; text-align:center; padding:15px; border-radius:10px; cursor:pointer; font-weight:bold; font-size:20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                            📲 ENVIAR TICKET POR WHATSAPP
+                        </div>
+                    </a>
+                ''', unsafe_allow_html=True)
+
 
 # TAB 4: JUEGOS PRINCIPALES
 with tab4:
@@ -203,8 +235,15 @@ with tab4:
             col1, col2 = st.columns(2)
             with col1:
                 st.markdown("**Pitchers Abridores:**")
-                st.write(f"🏠 {row['home_team']}: {row['home_pitcher_name']}")
-                st.write(f"✈️ {row['away_team']}: {row['away_pitcher_name']}")
+                col_p1, col_p2 = st.columns(2)
+                with col_p1:
+                    if row['home_pitcher_id'] > 0:
+                        st.image(f"https://img.mlbstatic.com/mlb-photos/person/{row['home_pitcher_id']}@3x.jpg", width=80)
+                    st.write(f"🏠 {row['home_team']}: {row['home_pitcher_name']}")
+                with col_p2:
+                    if row['away_pitcher_id'] > 0:
+                        st.image(f"https://img.mlbstatic.com/mlb-photos/person/{row['away_pitcher_id']}@3x.jpg", width=80)
+                    st.write(f"✈️ {row['away_team']}: {row['away_pitcher_name']}")
             with col2:
                 st.markdown("**Condiciones (Estadio/Clima):**")
                 st.write(f"🌤️ {row['weather_condition']}")
@@ -212,3 +251,7 @@ with tab4:
             
             st.progress(int(row['home_win_prob']), text=f"Probabilidad de Local ({row['home_team']}): {row['home_win_prob']:.1f}%")
             st.metric("Carreras Totales Esperadas", f"{row['expected_total_runs']} carreras")
+            
+            with st.container(border=True):
+                st.markdown("#### 📌 Análisis de Referencia (Insights)")
+                st.info(row['key_insight'])

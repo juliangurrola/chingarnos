@@ -39,7 +39,8 @@ def init_db():
             expected_total_runs REAL,
             suggested_bet TEXT,
             confidence_score REAL,
-            FOREIGN KEY(game_id) REFERENCES daily_schedule(game_id)
+            key_insight TEXT,
+            FOREIGN KEY (game_id) REFERENCES daily_schedule (game_id)
         )
     ''')
     
@@ -74,6 +75,7 @@ def init_db():
             prop_id INTEGER PRIMARY KEY AUTOINCREMENT,
             game_id INTEGER,
             player_name TEXT,
+            player_id INTEGER,
             prop_type TEXT,
             line REAL,
             suggested_side TEXT,
@@ -94,6 +96,15 @@ def init_db():
         )
     ''')
     
+    # Intento de agregar columna key_insight si ya existía la tabla vieja
+    try:
+        cursor.execute('ALTER TABLE predictions ADD COLUMN key_insight TEXT')
+    except sqlite3.OperationalError: pass
+
+    try:
+        cursor.execute('ALTER TABLE player_props ADD COLUMN player_id INTEGER')
+    except sqlite3.OperationalError: pass
+        
     conn.commit()
     conn.close()
     print("✅ Base de datos inicializada correctamente.")
