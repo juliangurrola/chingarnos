@@ -104,7 +104,8 @@ def fetch_daily_schedule():
                 for p in r_data.get('roster', [])[:8]:
                     p_name = p['person']['fullName']
                     p_id = p['person']['id']
-                    if p['position']['type'] != 'Pitcher':
+                    # SOLO INSERTAR SI EL ID ES REAL Y ES UN BATEADOR
+                    if p['position']['type'] != 'Pitcher' and p_id > 0:
                         cursor.execute('INSERT OR REPLACE INTO player_props (game_id, player_name, player_id, prop_type) VALUES (?, ?, ?, ?)',
                                        (g_id, p_name, p_id, "Bateador"))
             except: pass
