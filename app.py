@@ -223,8 +223,21 @@ if not props_df.empty:
             "t_id": 0
         })
 
-# Ordenar y tomar los mejores 10 (con seguridad)
-top_10_unified = sorted(all_bets_list, key=lambda x: x['conf'], reverse=True)[:10]
+# --- ALGORITMO DE BALANCE SHARP (TOP 10 DIVERSIFICADO) ---
+# Clasificamos las apuestas por tipo de mercado popular en casinos
+bet_categories = {
+    "BATEO": [b for b in all_bets_list if "Hit" in b['play'] or "HR" in b['play'] or "Total Bases" in b['play'] or "BB" in b['play']],
+    "EQUIPOS": [b for b in all_bets_list if "Gana el Partido" in b['play'] or "Carreras Totales" in b['play'] or "Runline" in b['play']],
+    "PITCHEO": [b for b in all_bets_list if "Strikeouts" in b['play']]
+}
+
+# Tomamos los mejores de cada categoría para asegurar variedad
+top_bateo = sorted(bet_categories["BATEO"], key=lambda x: x['conf'], reverse=True)[:4]
+top_equipos = sorted(bet_categories["EQUIPOS"], key=lambda x: x['conf'], reverse=True)[:4]
+top_pitcheo = sorted(bet_categories["PITCHEO"], key=lambda x: x['conf'], reverse=True)[:2]
+
+# Unificamos y ordenamos el Top 10 final
+top_10_unified = sorted(top_bateo + top_equipos + top_pitcheo, key=lambda x: x['conf'], reverse=True)
 
 conn.close()
 
@@ -342,19 +355,32 @@ with tab3:
                             if {"desc": desc_a, "prob": prob_a} in st.session_state['selected_bets']: st.session_state['selected_bets'].remove({"desc": desc_a, "prob": prob_a})
                         st.markdown(f"<h3 style='color:#4CAF50; margin-top:-10px;'>{prob_a:.1f}%</h3>", unsafe_allow_html=True)
                 
+                # Buscador de Jugadores
+                search = st.text_input("🔍 Buscar jugador o apuesta:", key=f"search_{row['game_id']}")
+                
                 # Props
                 game_props = props_df[props_df['game_id'] == row['game_id']]
-                p_cols = st.columns(2)
+                if search:
+                    game_props = game_props[game_props['player_name'].str.contains(search, case=False) | 
+                                            game_props['prop_type'].str.contains(search, case=False)]
+                
                 for idx, prop in game_props.iterrows():
-                    with p_cols[idx % 2]:
-                        with st.container(border=True):
+                    with st.container(border=True):
+                        c_img, c_det = st.columns([1, 4])
+                        p_id = prop.get('player_id', 0)
+                        with c_img:
+                            if p_id > 0:
+                                st.image(f"https://img.mlbstatic.com/mlb-photos/person/{p_id}@3x.jpg", width=60)
+                            else:
+                                st.markdown("### 🏟️")
+                        with c_det:
                             desc_p = f"{prop['player_name']}: {prop['suggested_side']} {prop['line']} {prop['prop_type']}"
                             prob_p = prop['confidence_score']
                             if st.checkbox(f"**{desc_p}**", key=f"p_{prop['prop_id']}"):
                                 if {"desc": desc_p, "prob": prob_p} not in st.session_state['selected_bets']: st.session_state['selected_bets'].append({"desc": desc_p, "prob": prob_p})
                             else:
                                 if {"desc": desc_p, "prob": prob_p} in st.session_state['selected_bets']: st.session_state['selected_bets'].remove({"desc": desc_p, "prob": prob_p})
-                            st.markdown(f"<h3 style='color:#2196F3; margin-top:-10px;'>{prob_p:.1f}%</h3>", unsafe_allow_html=True)
+                            st.markdown(f"<span style='color:#2196F3; font-weight:bold;'>{prob_p:.1f}% Prob.</span> | Momio: {prop['american_odds']}", unsafe_allow_html=True)
 
     # SECCION MAÑANA
     st.markdown("---")
