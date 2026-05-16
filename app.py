@@ -109,6 +109,36 @@ except:
     props_df = pd.DataFrame()
     parlays_df = pd.DataFrame()
 
+    # --- CREAR TOP 10 UNIFICADO (EQUIPOS + JUGADORES) ---
+    all_bets_list = []
+    
+    # 1. Añadir jugadas de equipos (Moneyline / Totales)
+    for _, row in games_df.iterrows():
+        all_bets_list.append({
+            "type": "EQUIPO",
+            "name": f"{row['away_team']} @ {row['home_team']}",
+            "play": row['suggested_bet'],
+            "conf": row['confidence_score'],
+            "odds": "VAR",
+            "insight": row.get('key_insight', 'Análisis de equipo basado en stats.'),
+            "p_id": 0
+        })
+    
+    # 2. Añadir jugadas de jugadores
+    for _, row in props_df.iterrows():
+        all_bets_list.append({
+            "type": "JUGADOR",
+            "name": row['player_name'],
+            "play": f"{row['suggested_side']} {row['line']} {row['prop_type']}",
+            "conf": row['confidence_score'],
+            "odds": row['american_odds'],
+            "insight": row.get('key_insight', 'Racha positiva detectada.'),
+            "p_id": row.get('player_id', 0)
+        })
+    
+    # Ordenar y tomar los mejores 10
+    top_10_unified = sorted(all_bets_list, key=lambda x: x['conf'], reverse=True)[:10]
+
 conn.close()
 
 if games_df.empty:
@@ -118,39 +148,37 @@ if games_df.empty:
 
 tab1, tab2, tab3, tab4 = st.tabs(["🎯 Player Props", "🤑 Parlays Sugeridos", "📝 Armador de Parlays", "📊 Juegos Principales"])
 
-# TAB 1: PLAYER PROPS
+# TAB 1: MEJORES APUESTAS
 with tab1:
-    st.subheader("🎯 MEJORES JUGADAS DEL DÍA (TOP 10)")
-    best_props = props_df.sort_values(by='confidence_score', ascending=False).head(10)
+    st.subheader("🏆 TOP 10 SELECCIONES DE ELVEN MX")
+    st.markdown("Lo más probable del día entre equipos y jugadores.")
     
-    for _, row in best_props.iterrows():
-        # Crear una fila compacta tipo Sportsbook
+    for i, bet in enumerate(top_10_unified):
         with st.container(border=True):
             col_img, col_info, col_action = st.columns([1, 3, 1])
             
             with col_img:
-                p_id = int(float(row.get('player_id', 0)))
-                if p_id > 0:
-                    st.image(f"https://img.mlbstatic.com/mlb-photos/person/{p_id}@3x.jpg", width=70)
+                if bet['type'] == "JUGADOR":
+                    p_id = int(float(bet['p_id']))
+                    if p_id > 0:
+                        st.image(f"https://img.mlbstatic.com/mlb-photos/person/{p_id}@3x.jpg", width=70)
+                    else: st.markdown("<h1 style='text-align:center;'>⚾</h1>", unsafe_allow_html=True)
                 else:
-                    st.markdown("<h1 style='text-align:center;'>⚾</h1>", unsafe_allow_html=True)
+                    st.markdown("<h1 style='text-align:center;'>🏟️</h1>", unsafe_allow_html=True)
             
             with col_info:
-                st.markdown(f"**{row['player_name']}**")
-                st.markdown(f"<span style='color:#FF5722; font-weight:bold;'>{row['suggested_side']} {row['line']} {row['prop_type']}</span>", unsafe_allow_html=True)
-                if row.get('key_insight'):
-                    st.caption(f"💡 {row['key_insight']}")
-                st.markdown(f"<span style='color:#4CAF50; font-size:12px;'>Confianza: {row['confidence_score']:.1f}% | Momio: {row['american_odds']}</span>", unsafe_allow_html=True)
+                st.markdown(f"**{bet['name']}**")
+                st.markdown(f"<span style='color:#FF5722; font-weight:bold; font-size:18px;'>{bet['play']}</span>", unsafe_allow_html=True)
+                st.caption(f"💡 {bet['insight']}")
+                st.markdown(f"<span style='color:#4CAF50; font-size:12px;'>Confianza: {bet['conf']:.1f}% | Momio: {bet['odds']}</span>", unsafe_allow_html=True)
             
             with col_action:
-                # LLAVE UNICA BASADA EN DATOS, NO EN ID AUTOINCREMENTAL
-                bet_desc = f"{row['player_name']}: {row['suggested_side']} {row['line']} {row['prop_type']}"
+                bet_desc = f"{bet['name']}: {bet['play']}"
                 is_in = any(b['desc'] == bet_desc for b in st.session_state['selected_bets'])
-                
                 label = "✅" if is_in else "➕"
-                # Usamos un botón que dispara el rerun inmediatamente
-                if st.button(label, key=f"btn_{row['player_name']}_{row['prop_type']}", use_container_width=True):
-                    toggle_bet(bet_desc, row['confidence_score'])
+                
+                if st.button(label, key=f"top10_{i}_{bet['name']}", use_container_width=True):
+                    toggle_bet(bet_desc, bet['conf'])
                     st.rerun()
 
 # TAB 2: PARLAYS DE LA IA
